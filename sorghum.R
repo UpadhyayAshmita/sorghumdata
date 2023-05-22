@@ -1,3 +1,4 @@
+library(here)
 #install ASREML
 install.packages("../asreml-4.1.0.176-CentOS-7-R4.2.tar.gz", repos = NULL)
 # activate ASREML license
@@ -95,13 +96,14 @@ designnew<- transform(designnew,
 
 write.csv(designnew, 'designnew.csv')
 
-desinnew<- read.csv('designnew.csv')
+designnew<- read.csv('designnew.csv')
 
 models <- list()
-variables <- colnames(designnew)[10:2160]
+variables <- colnames(designnew)[11:2161]
 h2 <- data.frame(matrix(NA, length(variables), 2))  #n rows and 2 columns
 h2[,1] <- variables
-a <- 1
+colnames(h2) <- c("wave", "h2")
+rownames(h2) <- variables
 for(i in variables) {
   models[[i]] <- asreml(
     fixed = get(i) ~ 1 + Set+ LOC,
@@ -123,9 +125,7 @@ for(i in variables) {
        predict = predict.asreml(classify = "Name2", sed = TRUE)
      ) }
   
-  h2[a,2]  <- (1 - ((models[[i]]$predictions$avsed["mean"] ^ 2) /(2 * summary(models[[i]])$varcomp["Name2", "component"])))
-  h2[a,1]  <- i
-  a <- a + 1
+  h2[i,2]  <- (1 - ((models[[i]]$predictions$avsed["mean"] ^ 2) /(2 * summary(models[[i]])$varcomp["Name2", "component"])))
 }
 
 
@@ -155,7 +155,7 @@ relationshipmatrix <- matrix.wholewave %*% t(matrix.wholewave) / (ncol(df_predic
 dim(relationshipmatrix)
 hist(as.vector(relationshipmatrix))
 write.csv(relationshipmatrix,'whole.relation.matrix.csv')
-
+whole.relation.matrix.csv<- read.csv('whole.relation.matrix.csv')
 
 #creating relationship matrix for nirs data
 
@@ -173,10 +173,10 @@ relation.mat.nirs<- matrix_nirs %*% t(matrix_nirs) / (ncol(df_nirs)-1)
 dim(relation.mat.nirs)
 hist(as.vector(relation.mat.nirs))
 write.csv(relation.mat.nirs,'NIRS.R.matrix.csv')
-
+NIRS.R.matrix.csv<- read.csv('NIRS.R.matrix.csv')
 
 #for selecting genotype with higher heritability
-h2<-read.csv('h2.csv')
+h2<-read.csv(paste0(here(), '/sorghumdata/h2.csv'))
 
 
 library(tidyverse)
@@ -188,10 +188,12 @@ ggplot(data= h2, aes(x = wavenumber, y = X2)) + geom_point(color= "purple", size
 
 
 
-ggplot(data = h2[h2$X2 > 0.47, ], aes(x = wavenumber, y = X2)) + 
+ggplot(data = h2[h2$X2 > 0.4, ], aes(x = wave, y = h2)) + 
   geom_point(color= "purple", size= 0.1) + 
   labs(title= "heritability per wavelength", x= "wavenumber",y= "heritability")
 
-h2_maxwavelength<- h2[h2$X2 > 0.47, c("X1", "X2")]
+h2_maxwavelength<- h2[h2$X2 > 0.4712, c("X1", "X2")]
+
+
 
 
