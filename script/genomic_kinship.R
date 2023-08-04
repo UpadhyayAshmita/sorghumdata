@@ -1,3 +1,12 @@
+
+library(simplePHENOTYPES)
+library(data.table)
+library(AGHmatrix)
+library(tidyverse)
+library(ASRgenomics)
+library(asreml)
+library(here)
+
 # converting from vcf to numeric...some files can be removed afterwards (only look at the *_numeric.txt file)
 create_phenotypes(
   geno_file = "GBS002.pruned.vcf",
@@ -35,3 +44,5 @@ kin<- fread('./output/kinship_additive.txt', data.table= F)
 rownames(kin) <- colnames(kin)
 Gb <- G.tuneup(G = as.matrix(kin), bend = TRUE, eig.tol = 1e-06)$Gb
 GINV <- G.inverse(G = Gb , sparseform = T)
+
+
