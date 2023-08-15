@@ -6,12 +6,12 @@ library(data.table)
 library(purrr)
 library(tidyverse)
 library(ASRgenomics)
+
 library(flextable)
 library(dplyr)
 library(SmartEDA)
 library(explore)
 library(patchwork)
-library(tidyverse)
 library(ggplot2)
 
 #reading field design and wavelength data and filtering year 16 ("wavelength data available for year 16)
@@ -49,8 +49,9 @@ checks_mw <- names(is_check_mw[is_check_mw == TRUE])
 is_check_efsingle <- table(design[design$LOC == 'EF',]$Name2) >16
 check_efsingle<- names(is_check_efsingle[is_check_efsingle == TRUE]) #so we can see check var "spx" is replicated 17 times while other 6 check varieties are replicated 16th times one in each block inside four sets in each location "EF" and " MW".
 
-write.csv(designnew, './data/designnew.csv')
-designnew<- read.csv('./data/designnew.csv')
+#write.csv(designnew, './data/designnew.csv')
+
+designnew<- fread('./data/designnew.csv', data.table = FALSE)
 
 
 #for location EF
@@ -76,7 +77,26 @@ desplot::desplot(
 )
 
 
+#designnew<- designnew[order(designnew$row, designnew$range),]
 
+
+designnew<-
+  designnew %>% mutate(
+    Name2 = factor(Name2),
+    TAXA = factor(TAXA),
+    LOC = factor(LOC),
+    Set = factor(Set),
+    block = factor(block),
+    range = factor(range),
+    row = factor(row),
+    uni = c(1:960, 1:960)
+  ) %>%   arrange(LOC, range, row)
+
+
+#Reorder the 'loc' column within the same data frame
+
+designnew$LOC <- factor(designnew$LOC, levels = c('EF', 'MW'))
+designnew <- designnew[order(designnew$LOC), ]
 
 #calculating heritability of each wavelength
 
@@ -88,9 +108,9 @@ colnames(h2) <- c("wave", "h2")
 rownames(h2) <- variables
 
 for(i in variables) { models[[i]] <- asreml(
-    fixed = get(i) ~ 1 + Set+ LOC
+    fixed = get(i) ~ 1 + Set + LOC + LOC: Set,
     random = ~Name2 + LOC:block + LOC:Name2,
-    #residual =  ~ corh(rep):id(range):(row),
+    residual =  ~id(LOC):ar1(range):ar1(row),
     data = designnew, na.action = na.method(x = "include"),
     predict = predict.asreml(classify = "Name2", sed = TRUE)
      )
@@ -100,9 +120,9 @@ for(i in variables) { models[[i]] <- asreml(
     for(i in variables) {
       designnew[,i][designnew$LOC == "EF"][out] <- NA
       models[[i]] <- asreml(
-        fixed = get(i) ~ 1 + Set + LOC,
+        fixed = get(i) ~ 1 + Set + LOC + LOC:Set,
         random =  ~ Name2 + LOC:block + LOC:Name2,
-        #residual =  ~ id(rep):id(range):(row),
+        residual =  ~ id(LOC):ar1(range):ar1(row),
         data = designnew, na.action = na.method(x = "include"),
         predict = predict.asreml(classify = "Name2", sed = TRUE)
         
@@ -126,9 +146,9 @@ colnames(waveblues) <- c("wave", "blues")
 rownames(waveblues) <- variables
 
 for(i in 1:length(variables)) {models[[i]] <- asreml(
-    fixed = get(variables[i]) ~ Name2,
+    fixed = get(variables[i]) ~ Name2 + LOC+ Name2:LOC + Set + LOC:Set,
     random = ~ LOC:block + Set,
-    #residual =  ~ corh(rep):id(range):(row),
+    residual =  ~ id(LOC):ar1(range):ar1(row),
     data = designnew, na.action = na.method(x = "include"),
     predict = predict.asreml(classify = "Name2", sed = TRUE))
     temp <- models[[i]]$predictions$pvals[, 1:2]
@@ -136,7 +156,7 @@ for(i in 1:length(variables)) {models[[i]] <- asreml(
     waveblues <- rbind(waveblues, temp)}
 
 
-frwite(waveblues, "waveblues.csv")
+frwite(waveblues, "./output/waveblues.csv")
 
 #reading blues data of each wavelength
 
@@ -150,6 +170,46 @@ blueswave<- pivot_wider(waveblues,
 fwrite(blueswave, "blueswave.csv")
 blueswave<- fread("./output/blueswave.csv")
 
+#blues for each location MW
+
+models <- list()
+variables <- colnames(designnew)[11:2161]
+wavebluesMW <- data.frame()  #n rows and 2 columns
+wavebluesMW[,1] <- variables
+colnames(wavebluesMW) <- c("wave", "blues")
+rownames(wavebluesMW) <- variables
+for(i in 1:length(variables)) {models[[i]] <- asreml(
+  fixed = get(variables[i]) ~ Name2 + Set,
+  random = ~ block,
+  residual =  ~ ar1(range):ar1(row),
+  data = designnew, subset = LOC== "MW", na.action= na.method(x = "include"),
+  predict = predict.asreml(classify = "Name2", sed = TRUE))
+temp1 <- models[[i]]$predictions$pvals[, 1:2]
+temp1$wave <- variables[i]
+wavebluesMW <- rbind(wavebluesMW, temp1)}
+
+fwrite("./output/wavebluesMW.csv")
+
+
+#blues for EF location 
+models <- list()
+variables <- colnames(designnew)[11:2161]
+wavebluesMW <- data.frame()  #n rows and 2 columns
+wavebluesMW[,1] <- variables
+colnames(wavebluesEF) <- c("wave", "blues")
+rownames(wavebluesEF) <- variables
+for(i in 1:length(variables)) {models[[i]] <- asreml(
+  fixed = get(variables[i]) ~ Name2+ Set,
+  random = ~ block,
+  residual =  ~ ar1(range):ar1(row),
+  data = designnew, subset = LOC== "EF", na.action= na.method(x = "include"),
+  predict = predict.asreml(classify = "Name2", sed = TRUE))
+temp2 <- models[[i]]$predictions$pvals[, 1:2]
+temp2$wave <- variables[i]
+wavebluesEF <- rbind(wavebluesEF, temp2)}
+
+
+fwrite("./output/wavebluesEF.csv")
 
 #generating relationship matrix for whole spectra
 matrix.wholewave <- as.matrix(blueswave)
@@ -298,7 +358,7 @@ for(i in c("Narea","SLA")){
     #residual =  ~ id(range):id(row),
     data = phenotypedata, subset = LOC == "MW", na.action = na.method(x = c("include")),
     predict = predict.asreml(classify = "Name2",sed = TRUE))
-  bluesMW[[i]] <-   models[[i]]$predictions$pvals[,1:2]0  
+  bluesMW[[i]] <-   models[[i]]$predictions$pvals[,1:2]  
   colnames(bluesMW[[i]]) <- c("Name2", i)
   a <- a + 1}
   
@@ -308,18 +368,26 @@ for(i in c("Narea","SLA")){
 #filtering to include only rows with "TAXA" present in the "kin" matrix, grouped the data by "TAXA",obtained the mean for each column (excluding "Name2" and "LOC"), 
 #filtering out rows with Na's values in the "Narea" column, obtained final "blues" data frame with the mean "blues" values for each unique "TAXA".
 
-blues <-
-bind_rows(
+
+
+
+blues <- 
+  bind_rows(
   "EF" = bluesEF %>% reduce(left_join, by = "Name2"),
   "MW" = bluesMW %>% reduce(left_join, by = "Name2"),
-  .id = "LOC"
-) %>% left_join(phenotypedata %>% filter(!duplicated(Name2)) %>% select(Name2, TAXA))
-blues <- droplevels(blues[blues$TAXA %in%rownames(kin), ])
+  .id = "LOC") %>% left_join(phenotypedata %>% filter(!duplicated(Name2)) %>% select(Name2, TAXA)
+    )
 
-blues <- blues %>%
-group_by(TAXA) %>% select(-Name2, -LOC) %>%
-summarise(across(everything(), \(x) mean(x, na.rm = TRUE))) %>%
-filter(!is.nan(Narea))
+blues <- droplevels(blues[blues$TAXA %in%rownames(kin), ]) %>% group_by(TAXA) %>% select(-Name2)
+
+EFbluesN <- subset(blues, select = c("TAXA", "Narea"), LOC == "EF")
+MWbluesN<- subset(blues, select = c("TAXA", "Narea"), LOC == "MW")
+
+EFbluesSL<- subset(blues, select = c("TAXA", "SLA"), LOC == "EF")
+MWbluesSL<- subset(blues, select = c("TAXA", "Narea"), LOC == "MW")
+
+# blues for SLA trait
+SLAblues <- subset(blues, select = c("TAXA", "SLA"))
 
 fwrite(blues, "blues.txt", quote = F, sep = "\t")
 
