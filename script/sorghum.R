@@ -3,10 +3,7 @@ library(tidyverse)
 library(asreml)
 source('./script/outlier.R')
 library(data.table)
-library(purrr)
-library(tidyverse)
 library(ASRgenomics)
-
 library(flextable)
 library(dplyr)
 library(SmartEDA)
@@ -40,7 +37,7 @@ is_check_ef <- table(design[design$LOC == 'EF', ]$Name2) > 1
 checks_ef <- names(is_check_ef[is_check_ef == TRUE])
 
 
-##finding 7 different check varieties that are replicated in all block inside each set in location "EF"
+##finding 7 different check varieties that are replicated in all block inside each set in location "MW"
 
 is_check_mw<- table(design[design$LOC == 'MW', ]$Name2) > 1
 checks_mw <- names(is_check_mw[is_check_mw == TRUE])
@@ -57,7 +54,7 @@ designnew<- fread('./data/designnew.csv', data.table = FALSE)
 #for location EF
 
 desplot::desplot(
-  design %>% filter(LOC == "EF"),
+  design%>% filter(LOC == "EF"),
   block ~ range * row,
   out2 = block,
   out1 = Set,
@@ -77,162 +74,252 @@ desplot::desplot(
 )
 
 
-#designnew<- designnew[order(designnew$row, designnew$range),]
+asreml.options(
+  workspace = '8gb',
+  pworkspace = '8gb'
+)
 
 
+
+# ---------------------load data---------------------
+designnew<- fread('./data/designnew.csv',data.table= FALSE)
+
+
+
+# ---------------------processing data---------------------
 designnew<-
-  designnew %>% mutate(
-    Name2 = factor(Name2),
-    TAXA = factor(TAXA),
-    LOC = factor(LOC),
-    Set = factor(Set),
+  designnew %>% clean_names() %>% mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
     block = factor(block),
     range = factor(range),
     row = factor(row),
     uni = c(1:960, 1:960)
-  ) %>%   arrange(LOC, range, row)
+  ) %>%   arrange(loc, range, row)
 
 
-#Reorder the 'loc' column within the same data frame
 
-designnew$LOC <- factor(designnew$LOC, levels = c('EF', 'MW'))
-designnew <- designnew[order(designnew$LOC), ]
 
-#calculating heritability of each wavelength
+
+# ---------------------calculating heritability of each wavelength--------------------
 
 models <- list()
 variables <- colnames(designnew)[11:2161]
 h2 <- data.frame(matrix(NA, length(variables), 2))  #n rows and 2 columns
 h2[,1] <- variables
+
 colnames(h2) <- c("wave", "h2")
-rownames(h2) <- variables
 
-for(i in variables) { models[[i]] <- asreml(
-    fixed = get(i) ~ 1 + Set + LOC + LOC: Set,
-    random = ~Name2 + LOC:block + LOC:Name2,
-    residual =  ~id(LOC):ar1(range):ar1(row),
+
+#for(i in variables)
+for (i in 1:length(variables)) {
+  wavelength<- variables[i]
+  
+  
+  # ---------------------fitting model---------------------
+  
+  cat( wavelength, '\n')
+  
+  models[[wavelength]] <- asreml(
+    fixed = get(wavelength) ~ set + loc + loc: set,
+    random = ~name2 + loc:block + loc:name2,
+    residual =  ~id(loc):ar1(range):ar1(row),
     data = designnew, na.action = na.method(x = "include"),
-    predict = predict.asreml(classify = "Name2", sed = TRUE)
-     )
+    predict = predict.asreml(classify = "name2", sed = TRUE)
+  )
+  
+  # ---------------------checking outliers---------------------
+  
+  out <- outlier(models[[wavelength]]$residuals)
+  
+  if(length(out) > 0) {
+    designnew[,wavelength][designnew$LOC][out] <- NA
+    models[[wavelength]] <- asreml(
+      fixed = get(wavelength) ~ set + loc + loc:set,
+      random =  ~ name2 + loc:block + loc:name2,
+      residual =  ~ id(loc):ar1(range):ar1(row),
+      data = designnew, na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
       
-    out <- outlier(models[[i]]$residuals)
-    
-    for(i in variables) {
-      designnew[,i][designnew$LOC == "EF"][out] <- NA
-      models[[i]] <- asreml(
-        fixed = get(i) ~ 1 + Set + LOC + LOC:Set,
-        random =  ~ Name2 + LOC:block + LOC:Name2,
-        residual =  ~ id(LOC):ar1(range):ar1(row),
-        data = designnew, na.action = na.method(x = "include"),
-        predict = predict.asreml(classify = "Name2", sed = TRUE)
-        
-      )
-      }
+    )
+  }
+  
+  # ---------------------calculating heritability from formula---------------------
+  
+  h2[i,2]  <- (1 - ((models[[wavelength]]$predictions$avsed["mean"] ^ 2) /(2 * summary(models[[wavelength]])$varcomp["name2", "component"])))
+}
 
-     h2[i,2]  <- (1 - ((models[[i]]$predictions$avsed["mean"] ^ 2) /(2 * summary(models[[i]])$varcomp["Name2", "component"])))}
+cat('\n')
+
+#fwrite(h2, "./output/h2.csv",row.names = F)
+
+h2<- fread("./output/h2.csv", data.table = FALSE)
 
 
-h2<- fwrite(h2, "h2.csv",row.names = F)
-h2<- fread("./output/h2.csv")
-summary(h2)
 
+#calculating blues for joint location for each wavelength 
 #calculating blues for each wavelength 
-
 models <- list()
 variables <- colnames(designnew)[11:2161]
-waveblues <- data.frame()  #n rows and 2 columns
-waveblues[,1] <- variables
-colnames(waveblues) <- c("wave", "blues")
-rownames(waveblues) <- variables
+waveblues <- data.frame()
 
-for(i in 1:length(variables)) {models[[i]] <- asreml(
-    fixed = get(variables[i]) ~ Name2 + LOC+ Name2:LOC + Set + LOC:Set,
-    random = ~ LOC:block + Set,
-    residual =  ~ id(LOC):ar1(range):ar1(row),
-    data = designnew, na.action = na.method(x = "include"),
-    predict = predict.asreml(classify = "Name2", sed = TRUE))
-    temp <- models[[i]]$predictions$pvals[, 1:2]
-   temp$wave <- variables[i]
-    waveblues <- rbind(waveblues, temp)}
+# ---------------------fitting model---------------------
 
+for (i in 1:length(variables)) {
+  cat(variables[i], '\n')
+  
+  models[[i]] <- tryCatch({
+    asreml(
+      fixed = get(variables[i]) ~ loc + set + loc:set + name2 + name2:loc,
+      random = ~loc:block,
+      residual =  ~ id(loc):ar1(range):ar1(row),
+      data = designnew, na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+  }, error = function(err) {
+    message("An error occured")
+    print(err)
+  })
+  
+  # ---------------------check outlier---------------------
+  
+  out <- outlier(models[[i]]$residuals)
+  
+  # ---------------------fit the model without outlier---------------------
+  if (length(out) > 0) {
+    designnew[out, variables[i]] <- NA
+    models[[i]] <- asreml(
+      fixed = get(variables[i]) ~ loc + set + loc:set + name2 + name2:loc,
+      random = ~ loc:block,
+      residual = ~ id(loc):ar1(range):ar1(row),
+      data = designnew, 
+      na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+  }
+  
+  
+  # ---------------------storing prediction---------------------
+  temp <- models[[i]]$predictions$pvals[, 1:2]
+  temp$wave <- variables[i]
+  waveblues <- rbind(waveblues, temp)
+  cat('\n')
+}
 
-frwite(waveblues, "./output/waveblues.csv")
+fwrite(waveblues, "./output/waveblues.csv", row.names= FALSE)
+cat('Done!')
 
-#reading blues data of each wavelength
-
-waveblues<- fread("./output/waveblues.csv")
-
-#transforming longer format of blues into wider format 
-blueswave<- pivot_wider(waveblues,
-                        id_cols = Name2, 
-                       names_from = wave, values_from = predicted.value)
-
-fwrite(blueswave, "blueswave.csv")
-blueswave<- fread("./output/blueswave.csv")
 
 #blues for each location MW
 
 models <- list()
 variables <- colnames(designnew)[11:2161]
-wavebluesMW <- data.frame()  #n rows and 2 columns
-wavebluesMW[,1] <- variables
-colnames(wavebluesMW) <- c("wave", "blues")
-rownames(wavebluesMW) <- variables
-for(i in 1:length(variables)) {models[[i]] <- asreml(
-  fixed = get(variables[i]) ~ Name2 + Set,
-  random = ~ block,
-  residual =  ~ ar1(range):ar1(row),
-  data = designnew, subset = LOC== "MW", na.action= na.method(x = "include"),
-  predict = predict.asreml(classify = "Name2", sed = TRUE))
-temp1 <- models[[i]]$predictions$pvals[, 1:2]
-temp1$wave <- variables[i]
-wavebluesMW <- rbind(wavebluesMW, temp1)}
+wavebluesEF <- data.frame()
 
-fwrite("./output/wavebluesMW.csv")
+# ---------------------fitting model---------------------
+
+  for(i in 1:length(variables)) {models[[i]] <- asreml(
+    fixed = get(variables[i]) ~ name2 + set,
+    random = ~ block,
+    residual =  ~ ar1(range):ar1(row),
+    data = designnew, subset = loc== "MW", na.action= na.method(x = "include"),
+    predict = predict.asreml(classify = "name2", sed = TRUE))
+  
+  
+  # ---------------------check outlier---------------------
+  out <- outlier(models[[i]]$residuals)
+  
+  # ---------------------fit the model without outlier---------------------
+  if (length(out) > 0) {
+    designnew[out, variables[i]] <- NA
+    models[[i]] <- asreml(
+      fixed = get(variables[i]) ~ name2 + set
+      random = ~block,
+      residual = ~ar1(range):ar1(row),
+      data = designnew,
+      na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+  }
+  
+  # ---------------------storing the prediction in an object---------------------
+  
+  temp1 <- models[[i]]$predictions$pvals[, 1:2]
+  temp1$wave <- variables[i]
+  wavebluesMW <- rbind(wavebluesMW, temp1)
+  }
+
+#fwrite( wavebluesMW"./output/wavebluesMW.csv", row.names=FALSE)
+
+fread("./output/wavebluesMW.csv")
 
 
 #blues for EF location 
 models <- list()
 variables <- colnames(designnew)[11:2161]
-wavebluesMW <- data.frame()  #n rows and 2 columns
-wavebluesMW[,1] <- variables
-colnames(wavebluesEF) <- c("wave", "blues")
-rownames(wavebluesEF) <- variables
-for(i in 1:length(variables)) {models[[i]] <- asreml(
-  fixed = get(variables[i]) ~ Name2+ Set,
-  random = ~ block,
-  residual =  ~ ar1(range):ar1(row),
-  data = designnew, subset = LOC== "EF", na.action= na.method(x = "include"),
-  predict = predict.asreml(classify = "Name2", sed = TRUE))
-temp2 <- models[[i]]$predictions$pvals[, 1:2]
-temp2$wave <- variables[i]
-wavebluesEF <- rbind(wavebluesEF, temp2)}
+wavebluesEF <- data.frame()
+
+# ---------------------fitting model---------------------
+
+  for(i in 1:length(variables)) {models[[i]] <- asreml(
+    fixed = get(variables[i]) ~ name2 + set,
+    random = ~ block,
+    residual =  ~ ar1(range):ar1(row),
+    data = designnew, subset =loc== "EF", na.action= na.method(x = "include"),
+    predict = predict.asreml(classify = "name2", sed = TRUE))
+  
+  
+  # ---------------------check outlier---------------------
+  out <- outlier(models[[i]]$residuals)
+
+  # ---------------------fit the model without outlier---------------------
+  if (length(out) > 0) {
+    designnew[out, variables[i]] <- NA
+    models[[i]] <- asreml(
+      fixed = get(variables[i]) ~ name2 + set
+      random = ~block,
+      residual = ~ar1(range):ar1(row),
+      data = designnew,
+      na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+  }
+  # ---------------------storing the prediction in an object---------------------
+  
+  temp2 <- models[[i]]$predictions$pvals[, 1:2]
+  temp2$wave <- variables[i]
+  wavebluesEF <- rbind(wavebluesEF, temp2)
+  }
+
+#fwrite(wavebluesEF,"./output/wavebluesEF.csv")
 
 
-fwrite("./output/wavebluesEF.csv")
+#creating relationship matrix for each location and joint location from blues obtained for wavelength
 
 #generating relationship matrix for whole spectra
-matrix.wholewave <- as.matrix(blueswave)
-rownames(matrix.wholewave) <- matrix.wholewave[, 1]
-matrix.wholewave <- matrix.wholewave[, -1]
-class(matrix.wholewave) <- 'numeric'
+  matrix.wholewave <- as.matrix(blueswave)
+  rownames(matrix.wholewave) <- matrix.wholewave[, 1]
+  matrix.wholewave <- matrix.wholewave[, -1]
+  class(matrix.wholewave) <- 'numeric'
 
 #creating relationship matrix by multiplying matrix with its transpose
 
-relationshipmatrix <- matrix.wholewave %*% t(matrix.wholewave) / (ncol(blueswave) - 1)
-dim(relationshipmatrix)
-hist(as.vector(relationshipmatrix))
-
-write.csv(relationshipmatrix,'wholewaverel.csv')
-whole.relation.matrix.csv<- read.csv('./output/wholewaverel.csv')
-
-#creating relationship matrix for nirs data
-
-dfnirs<- blueswave %>% select(Name2,"Wave_392":"Wave_850")
-matrix_nirs<- as.matrix(dfnirs)
-rownames(matrix_nirs)<- matrix_nirs[, 1]
-matrix_nirs<- matrix_nirs[,-1]
-class(matrix_nirs)<- 'numeric'
+  relationshipmatrix <- matrix.wholewave %*% t(matrix.wholewave) / (ncol(blueswave) - 1)
+  dim(relationshipmatrix)
+  hist(as.vector(relationshipmatrix))
+  
+  write.csv(relationshipmatrix,'wholewaverel.csv')
+  whole.relation.matrix.csv<- read.csv('./output/wholewaverel.csv')
+  
+  #creating relationship matrix for nirs data
+  
+  dfnirs<- blueswave %>% select(Name2,"Wave_392":"Wave_850")
+  matrix_nirs<- as.matrix(dfnirs)
+  rownames(matrix_nirs)<- matrix_nirs[, 1]
+  matrix_nirs<- matrix_nirs[,-1]
+  class(matrix_nirs)<- 'numeric'
 
 
 #nirsmatrix* nirsmatrix(transpose/(total 392-850)wavelength))
@@ -251,7 +338,7 @@ h2<-read.csv('./output/h2.csv') #reading h2 data
 
 #visualizing trend in plot with wavelegth vs heritability 
 
-h2<- h2 %>% mutate(wavenumber= as.numeric(str_replace(wave,"Wave_", "")))
+h2<- h2 %>% mutate(wavenumber= as.numeric(str_replace(wave,"wave_", "")))
 ggplot(data= h2, aes(x = wavenumber, y = h2)) + geom_point(color= "purple", size= 0.1) + labs(title= "heritability per wavelength", x= "wavenumber",y= "heritability")
 ggplot(data = h2[h2$h2 > 0.4, ], aes(x = wavenumber, y = h2)) + geom_point(color= "purple", size= 0.1) + labs(title= "heritability per wavelength", x= "wavenumber",y= "heritability")
 highh2wave<- h2[h2$h2 > 0.4712, c("wavenumber", "h2")]
@@ -323,9 +410,9 @@ str(phenotypedata)
 
 #exploring more through visual plot 
 
-ExpNumStat(phenotypedata, by="A", round= 2) %>%  flextable()
+ExpNumStat(designnew, by="A", round= 2) %>%  flextable()
 
-phenotypedata%>% explore()
+designnew%>% explore()
 
 #calculating BLUES of Narea and SLA for  EF location 
 models <- list()
