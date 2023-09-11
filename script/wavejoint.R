@@ -8,12 +8,12 @@ library(dplyr)
 library(janitor)
 
 asreml.options(
-  workspace = '64gb',
-  pworkspace = '64gb'
+  workspace = '8gb',
+  pworkspace = '8gb'
 )
 
 # ---------------------loading data---------------------
-design<- fread('./data/design.csv')
+design<- fread('./data/design.csv', data.table = F)
 
 # ---------------------processing of data---------------------
 
@@ -72,15 +72,14 @@ for (i in 1:length(variables)) {
     
       cat('\n')
     }
-    
-    
   },
   
   error = function(err) {
     message("An error occured")
     print(err)
   })
-  
+  rm(model)
+  gc()
 }
 
 
