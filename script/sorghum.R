@@ -1,4 +1,4 @@
-library(here)
+
 library(tidyverse)
 library(asreml)
 source('./script/outlier.R')
@@ -9,7 +9,7 @@ library(dplyr)
 library(SmartEDA)
 library(explore)
 library(patchwork)
-library(ggplot2)
+library(janitor)
 
 #reading field design and wavelength data and filtering year 16 ("wavelength data available for year 16)
 
@@ -33,17 +33,17 @@ designnew<- left_join(design,averagedspectra, by = "PlotID") # Apply left_join d
 
 #finding 7 different check varieties that are replicated in all block inside each set in location "EF"
 
-is_check_ef <- table(design[design$LOC == 'EF', ]$Name2) > 1
+is_check_ef <- table(design[design$loc == 'EF', ]$name2) > 1
 checks_ef <- names(is_check_ef[is_check_ef == TRUE])
 
 
 ##finding 7 different check varieties that are replicated in all block inside each set in location "MW"
 
-is_check_mw<- table(design[design$LOC == 'MW', ]$Name2) > 1
+is_check_mw<- table(design[design$loc == 'MW', ]$name2) > 1
 checks_mw <- names(is_check_mw[is_check_mw == TRUE])
 
 
-is_check_efsingle <- table(design[design$LOC == 'EF',]$Name2) >16
+is_check_efsingle <- table(design[design$loc == 'EF',]$name2) >16
 check_efsingle<- names(is_check_efsingle[is_check_efsingle == TRUE]) #so we can see check var "spx" is replicated 17 times while other 6 check varieties are replicated 16th times one in each block inside four sets in each location "EF" and " MW".
 
 #write.csv(designnew, './data/designnew.csv')
@@ -54,10 +54,10 @@ designnew<- fread('./data/designnew.csv', data.table = FALSE)
 #for location EF
 
 desplot::desplot(
-  design%>% filter(LOC == "EF"),
+  design%>% filter(loc == "EF"),
   block ~ range * row,
   out2 = block,
-  out1 = Set,
+  out1 = set,
   cex = 0.7,
   ticks = T
 )
@@ -65,12 +65,12 @@ desplot::desplot(
 
 #for location MW
 desplot::desplot(
-  design %>% filter(LOC == "MW"),
+  design %>% filter(loc == "MW"),
   block ~ range * row,
   out2 = block,
-  out1 = Set,
+  out1 = set,
   cex = 0.7,
-  ticks = T, text= Name2,
+  ticks = T, text= name2,
 )
 
 
@@ -135,7 +135,7 @@ for (i in 1:length(variables)) {
   out <- outlier(models[[wavelength]]$residuals)
   
   if(length(out) > 0) {
-    designnew[,wavelength][designnew$LOC][out] <- NA
+    designnew[,wavelength][designnew$loc][out] <- NA
     models[[wavelength]] <- asreml(
       fixed = get(wavelength) ~ set + loc + loc:set,
       random =  ~ name2 + loc:block + loc:name2,
@@ -315,7 +315,7 @@ wavebluesEF <- data.frame()
   
   #creating relationship matrix for nirs data
   
-  dfnirs<- blueswave %>% select(Name2,"Wave_392":"Wave_850")
+  dfnirs<- blueswave %>% select(name2,"Wave_392":"Wave_850")
   matrix_nirs<- as.matrix(dfnirs)
   rownames(matrix_nirs)<- matrix_nirs[, 1]
   matrix_nirs<- matrix_nirs[,-1]
@@ -365,42 +365,45 @@ highh2_relationmat<- read.csv("./output/highh2_relationmat.csv", row.names= "T")
 
 #reading phenotypic data
 phenotypedata<- read.csv('./data/phenotypes.csv')
+phenotypedata<-
+  phenotypedata %>% clean_names()%>% mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
+    block = factor(block),
+    range = factor(range),
+    row = factor(row),
+    uni = c(1:960, 1:960)
+  ) %>%   arrange(loc, range, row)
 
-phenotypedata<- transform(phenotypedata,
-                          TAXA= factor(TAXA),
-                          LOC= factor(LOC),
-                          Name2= factor(Name2),
-                          Set= factor(Set),
-                          block= factor(block),
-                          range= factor(range),
-                          row= factor(row))
 
 #some EDA
 
 head(phenotypedata)
 
 summary(phenotypedata)
-table(phenotypedata$TAXA,phenotypedata$Set) #checks are replicated 8 times in each four set while other genotypes are replicated only 2 times in each set
-round(cor(phenotypedata[,10:11],use="pairwise.complete.obs"),5)# Narea and SLA is negatively correlated i.e -0.6298
+table(phenotypedata$taxa,phenotypedata$set) #checks are replicated 8 times in each four set while other genotypes are replicated only 2 times in each set
+round(cor(phenotypedata[,10:11],use="pairwise.complete.obs"),5)# narea and sla is negatively correlated i.e -0.6298
 
 #desplot for location "EF"
 
 
 desplot::desplot(
-  phenotypedata%>% filter(LOC == "EF"),
-  block ~ range * row
+  phenotypedata%>% filter(loc == "EF"),
+  block ~ range * row,
   out2 = block,
-  out1 = Set,
+  out1 = set,
   cex = 0.7,
   ticks = T
 )
 
 
 #desplot for location "MW"
-desplot::desplot(phenotypedata%>% filter(LOC == "MW"),
+desplot::desplot(phenotypedata%>% filter(loc == "MW"),
   block ~ range * row,
   out2 = block,
-  out1 = Set,
+  out1 = set,
   cex = 0.7,
   ticks = T
 )
@@ -410,234 +413,336 @@ str(phenotypedata)
 
 #exploring more through visual plot 
 
-ExpNumStat(designnew, by="A", round= 2) %>%  flextable()
+ExpNumStat(waveblues, by="A", round= 2) %>%  flextable()
 
 designnew%>% explore()
 
-#calculating BLUES of Narea and SLA for  EF location 
+
+#reading phenotypic data
+phenotypedata<- read.csv('./data/phenotypes.csv')
+phenotypedata<-
+  phenotypedata %>% clean_names()%>% mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
+    block = factor(block),
+    range = factor(range),
+    row = factor(row),
+    uni = c(1:960, 1:960)
+  ) %>%   arrange(loc, range, row)
+
+#calculating heritability of narea for mw location 
+
+nareaMW <- asreml(
+  fixed = narea ~ set,
+  random = ~name2 + block,
+  residual =  ~ar1(range):ar1(row),
+  data = phenotypedata, subset= loc== "MW",na.action = na.method(x = "include"),
+  predict = predict.asreml(classify = "name2", sed = TRUE)
+)
+
+ nareaMW<- update.asreml(nareaMW)
+
+  # ---------------------checking outliers---------------------
+  
+  
+  out <- outlier(nareaMW$residuals)
+  
+  if(length(out) > 0) {
+    phenotypedata[out, "narea"] <- NA
+    
+    } else{
+    
+    nareaMW <- asreml(
+      fixed = narea ~ set,
+      random = ~name2 + block,
+      residual =  ~ar1(range):ar1(row),
+      data = phenotypedata, subset= loc== "MW",na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+    nareaMW<- update.asreml(nareaMW)
+    }
+ 
+ temp <- (1 - ((nareaMW$predictions$avsed["mean"] ^ 2) /(2 * summary(nareaMW)$varcomp["name2", "component"])))
+ #0.587
+ 
+ fwrite(phenotypedata, "./data/phenotypedataMW.csv", row.names= FALSE)
+phenotypedataMW<-  fread("./data/phenotypedataMW.csv")
+ 
+ plot(h2narea)
+ 
+ #calculating heritability for n area for EF location
+ 
+nareaEF <- asreml(
+   fixed = narea ~ set,
+   random = ~name2 + block,
+   residual =  ~ar1(range):ar1(row),
+   data = phenotypedata, subset= loc== "EF",na.action = na.method(x = "include"),
+   predict = predict.asreml(classify = "name2", sed = TRUE)
+ )
+ 
+nareaEF<- update.asreml(nareaEF)
+ 
+ # ---------------------checking outliers---------------------
+ 
+ 
+ out <- outlier(nareaEF$residuals)
+ 
+ if(length(out) > 0) {
+   phenotypedata[out, "narea"] <- NA
+   }else {
+   
+  nareaEF <- asreml(
+     fixed = narea ~ set,
+     random = ~name2 + block,
+     residual =  ~ar1(range):ar1(row),
+     data = phenotypedata, subset= loc== "EF",na.action = na.method(x = "include"),
+     predict = predict.asreml(classify = "name2", sed = TRUE)
+   )
+   nareaEF<- update.asreml(nareaEF)
+ }
+ temp2<- (1 - ((nareaEF$predictions$avsed["mean"] ^ 2) /(2 * summary(nareaEF)$varcomp["name2", "component"])))
+ fwrite(phenotypedata, "./data/phenotypedataEF.csv", row.names= FALSE)
+
+ #h2 -0.355
+ 
+ plot(nareaEF)
+#calculating heritability for sla for MW location 
+ slaMW <- asreml(
+   fixed = sla ~ set,
+   random = ~name2 + block,
+   residual =  ~ar1(range):ar1(row),
+   data = phenotypedata, subset= loc== "MW",na.action = na.method(x = "include"),
+   predict = predict.asreml(classify = "name2", sed = TRUE)
+ )
+ 
+ slaMW<- update.asreml(slaMW)
+ 
+ # ---------------------checking outliers---------------------
+ 
+ 
+ out <- outlier(slaMW$residuals)
+ 
+ if(length(out) > 0) {
+   phenotypedata[out, "sla"] <- NA
+   }else{
+   
+   slaMW <- asreml(
+     fixed = sla ~ set,
+     random = ~name2 + block,
+     residual =  ~ar1(range):ar1(row),
+     data = phenotypedata, subset= loc== "MW",na.action = na.method(x = "include"),
+     predict = predict.asreml(classify = "name2", sed = TRUE)
+   )
+   slaMW<- update.asreml(slaMW)
+ }
+ temp3 <- (1 - ((slaMW$predictions$avsed["mean"] ^ 2) /(2 * summary(slaMW)$varcomp["name2", "component"])))
+ fwrite(phenotypedata, "./data/phenotypedataslaMW.csv", row.names= FALSE)
+ 
+ plot(slaMW)
+ 
+ #calculating heritability for sla for EF location 
+ slaEF <- asreml(
+   fixed = sla ~ set,
+   random = ~name2 + block,
+   residual =  ~ar1(range):ar1(row),
+   data = phenotypedata, subset= loc== "EF",na.action = na.method(x = "include"),
+   predict = predict.asreml(classify = "name2", sed = TRUE)
+ )
+ 
+ slaEF<- update.asreml(slaEF)
+ 
+ # ---------------------checking outliers---------------------
+ 
+ 
+ out <- outlier(slaMW$residuals)
+ 
+ if(length(out) > 0) {
+   phenotypedata[out, "sla"] <- NA
+ } else{
+   slaEF <- asreml(
+     fixed = sla ~ set,
+     random = ~name2 + block,
+     residual =  ~ar1(range):ar1(row),
+     data = phenotypedata, subset= loc== "EF",na.action = na.method(x = "include"),
+     predict = predict.asreml(classify = "name2", sed = TRUE)
+   )
+   slaEF<- update.asreml(slaEF)
+ }
+ temp4 <- (1 - ((slaEF$predictions$avsed["mean"] ^ 2) /(2 * summary(slaEF)$varcomp["name2", "component"])))
+ 
+ fwrite(phenotypedata, "./data/phenotypedataslaEF.csv", row.names= FALSE) 
+ plot(slaEF)
+ 
+ #joint heritability model for narea 
+ 
+ narea_ef<- fread('./data/phenotypedataEF.csv',data.table= FALSE) |>
+   filter(loc == "EF")
+ narea_mw<- fread('./data/phenotypedataMW.csv',data.table= FALSE)|>
+   filter(loc == "MW")
+ 
+ narea<- bind_rows(narea_ef, narea_mw)
+ fwrite(narea, "./data/narea.csv",row.names = F)
+ narea<-
+   narea %>% clean_names()%>% mutate(
+     name2 = factor(name2),
+     taxa = factor(taxa),
+     loc = factor(loc),
+     set = factor(set),
+     block = factor(block),
+     range = factor(range),
+     row = factor(row),
+     uni = c(1:960, 1:960)
+   ) %>%   arrange(loc, range, row)
+ 
+ 
+ nareajointh2 <- asreml(
+   fixed = narea ~ set + loc + loc: set,
+   random = ~name2 + loc:block + loc:name2,
+   residual =  ~id(loc):ar1(range):ar1(row),
+   data = narea, na.action = na.method(x = "include"),
+   predict = predict.asreml(classify = "name2", sed = TRUE)
+ )
+ 
+ nareajointh2<- update.asreml(nareajointh2)
+ 
+ temp5 <- (1 - ((nareajointh2$predictions$avsed["mean"] ^ 2) /(2 * summary(nareajointh2)$varcomp["name2", "component"])))
+ 
+ 
+ #joint heritability of sla trait 
+ 
+ sla_ef<- fread('./data/phenotypedataslaEF.csv',data.table= FALSE) |>
+   filter(loc == "EF")
+ sla_mw<- fread('./data/phenotypedataslaMW.csv',data.table= FALSE)|>
+   filter(loc == "MW")
+ 
+ sla<- bind_rows(sla_ef, sla_mw)
+ fwrite(sla, "./data/sla.csv",row.names = F)
+ sla<-
+   sla %>% clean_names()%>% mutate(
+     name2 = factor(name2),
+     taxa = factor(taxa),
+     loc = factor(loc),
+     set = factor(set),
+     block = factor(block),
+     range = factor(range),
+     row = factor(row),
+     uni = c(1:960, 1:960)
+   ) %>%   arrange(loc, range, row)
+ 
+ slajointh2 <- asreml(
+   fixed = sla ~ set + loc + loc: set,
+   random = ~name2 + loc:block + loc:name2,
+   residual =  ~id(loc):ar1(range):ar1(row),
+   data = sla, na.action = na.method(x = "include"),
+   predict = predict.asreml(classify = "name2", sed = TRUE)
+ )
+ 
+ slajointh2<- update.asreml(slajointh2)
+ 
+ temp6 <- (1 - ((slajointh2$predictions$avsed["mean"] ^ 2) /(2 * summary(slajointh2)$varcomp["name2", "component"])))
+ 
+ 
+ 
+phenotypedataEF<- fread("./data/phenotypedataEF.csv")
+phenotypedata<- phenotypedata %>% clean_names()%>% mutate(
+  name2 = factor(name2),
+  taxa = factor(taxa),
+  loc = factor(loc),
+  set = factor(set),
+  block = factor(block),
+  range = factor(range),
+  row = factor(row),
+  uni = c(1:960, 1:960)
+) %>%   arrange(loc, range, row)
+
+#blues for location EF for trait narea
+ modar1<-  asreml(fixed = sla ~ name2 +set + loc: set+ loc:name2,
+                           random =  ~ block+ loc:block,
+                           residual = ~id(loc):ar1(range):ar1(row),
+                           data = sla, na.action = na.method(x = c("include")),
+                           predict = predict.asreml(classify = "name2",sed = TRUE))
+ modar1<- update.asreml(modar1)
+ 
+ summary(modar1)$aic
+ plot(modar1)
+ 
+ 
+ modeliden <- asreml(
+   fixed = sla ~ name2+ set,
+   random =  ~block,
+   residual =  ~ id(range):id(row),
+   data = sla,subset= loc== "EF", na.action = na.method(x = c("include")),
+   predict = predict.asreml(classify = "name2",sed = TRUE))
+ 
+ modeliden<- update.asreml(modeliden)
+ 
+ summary(modeliden)$aic
+ plot(modeliden)
+
+#calculating BLUES of narea and sla for  EF location 
 models <- list()
 bluesEF <- list()
 a <- 1
 
-for(i in c("Narea","SLA")){
+for(i in c("narea","sla")){
  
   models[[i]] <- asreml(
-    fixed = get(i) ~ Name2,
-    random =  ~  Set+ block,
+    fixed = get(i) ~ name2+set,
+    random =  ~  block,
     #residual =  ~ id(range):id(row),
-    data = phenotypedata, subset = LOC == "EF", na.action = na.method(x = c("include")),
-    predict = predict.asreml(classify = "Name2",sed = TRUE))
+    data = phenotypedata, subset = loc == "EF", na.action = na.method(x = c("include")),
+    predict = predict.asreml(classify = "name2",sed = TRUE))
   bluesEF[[i]] <-   models[[i]]$predictions$pvals[,1:2]
-  colnames(bluesEF[[i]]) <- c("Name2", i)
+  colnames(bluesEF[[i]]) <- c("name2", i)
   a <- a + 1
 }
 
 
-#calculating BLUES of Narea and SLA for MW location
+#calculating BLUES of narea and sla for MW location
 
 models <- list()
 bluesMW <- list()
 a <- 1
-for(i in c("Narea","SLA")){
+for(i in c("narea","sla")){
   models[[i]] <- asreml(
-    fixed = get(i) ~ Name2,
-    random =  ~  Set + block,
+    fixed = get(i) ~ set+ name2,
+    random =  ~  block,
     #residual =  ~ id(range):id(row),
-    data = phenotypedata, subset = LOC == "MW", na.action = na.method(x = c("include")),
-    predict = predict.asreml(classify = "Name2",sed = TRUE))
+    data = phenotypedata, subset = loc == "MW", na.action = na.method(x = c("include")),
+    predict = predict.asreml(classify = "name2",sed = TRUE))
   bluesMW[[i]] <-   models[[i]]$predictions$pvals[,1:2]  
-  colnames(bluesMW[[i]]) <- c("Name2", i)
+  colnames(bluesMW[[i]]) <- c("name2", i)
   a <- a + 1}
   
   
   
-#---------combining"bluesEF" and "bluesMW" based on a common "Name2" column and creating new "LOC" column.Then left joining the blues data with "phenotypedata" adding info of "Name2",
-#filtering to include only rows with "TAXA" present in the "kin" matrix, grouped the data by "TAXA",obtained the mean for each column (excluding "Name2" and "LOC"), 
-#filtering out rows with Na's values in the "Narea" column, obtained final "blues" data frame with the mean "blues" values for each unique "TAXA".
+#---------combining"bluesEF" and "bluesMW" based on a common "name2" column and creating new "loc" column.Then left joining the blues data with "phenotypedata" adding info of "name2",
+#filtering to include only rows with "taxa" present in the "kin" matrix, grouped the data by "taxa",obtained the mean for each column (excluding "name2" and "loc"), 
+#filtering out rows with Na's values in the "narea" column, obtained final "blues" data frame with the mean "blues" values for each unique "taxa".
 
 
 
 
 blues <- 
   bind_rows(
-  "EF" = bluesEF %>% reduce(left_join, by = "Name2"),
-  "MW" = bluesMW %>% reduce(left_join, by = "Name2"),
-  .id = "LOC") %>% left_join(phenotypedata %>% filter(!duplicated(Name2)) %>% select(Name2, TAXA)
+  "EF" = bluesEF %>% reduce(left_join, by = "name2"),
+  "MW" = bluesMW %>% reduce(left_join, by = "name2"),
+  .id = "loc") %>% left_join(phenotypedata %>% filter(!duplicated(name2)) %>% select(name2, taxa)
     )
 
-blues <- droplevels(blues[blues$TAXA %in%rownames(kin), ]) %>% group_by(TAXA) %>% select(-Name2)
+blues <- droplevels(blues[blues$taxa %in% rownames(kin), ]) %>% group_by(taxa) %>% select(-name2)
 
-EFbluesN <- subset(blues, select = c("TAXA", "Narea"), LOC == "EF")
-MWbluesN<- subset(blues, select = c("TAXA", "Narea"), LOC == "MW")
 
-EFbluesSL<- subset(blues, select = c("TAXA", "SLA"), LOC == "EF")
-MWbluesSL<- subset(blues, select = c("TAXA", "Narea"), LOC == "MW")
 
-# blues for SLA trait
-SLAblues <- subset(blues, select = c("TAXA", "SLA"))
-
-fwrite(blues, "blues.txt", quote = F, sep = "\t")
+fwrite(blues, "./output/blues.csv")
 
 #-----reading the blues data file-----
-blues<- fread("./output/blues.txt")
+blues<- fread("./output/blues.csv")
 
-# blues for Narea trait
-Nitroblues <- subset(blues, select = c("TAXA", "Narea"))
-
-# blues for SLA trait
-SLAblues <- subset(blues, select = c("TAXA", "SLA"))
 
 # alternative model for first stage 
-# separating phenotypedata for two different location 
-
-phenoEF <- subset(phenotypedata, LOC == "EF")
-fwrite(phenoEF, "phenoEF.csv")
-
-# for location MW
-phenoMW<- subset(phenotypedata, LOC == "MW")
-fwrite(phenoMW, "phenoMW.csv")
-
-# reading two location phenotypedata
-
-phenoEF<- fread("./data/phenoEF.csv")
-phenoMW<- fread("./data/phenoMW.csv")
-
-# ---------------- Creating a vector of ascending and descending sequences and calculating rows number in each ascending sequences
- ascending_values <- 1:40
- rows_per_sequence <- 40
-#  -------------------Determine the row indices to apply ascending order
- ascending_rows_indices <- c(41:80, 121:160, 201:240, 281:320, 361:400, 441:480, 521:560, 601:640,681:720, 761:800, 841:880, 921:960)
- 
-# ----------Creating a function to repeat ascending order values and keeping the rest unchanged
-apply_ascending_order <- function(ascend) {ascending_values_rep <- rep(ascending_values, length.out = length(ascend))
- ascend[ascending_rows_indices] <- ascending_values_rep[ascending_rows_indices]
- return(ascend)}
-
-#  ------------------Applying ascending order on specified rows in the "row" column of phenotypic data 
-phenoEF$row<- apply_ascending_order(phenoEF$row)
-phenoMW$row<- apply_ascending_order(phenoMW$row)
-
-fwrite(phenoEF, "./data/phenotypeEF.csv")
-fwrite(phenoMW, "./data/phenotypeMW.csv")
-
-#reading each location phenotype data
-phenotypeEF<- fread("./data/phenotypeEF.csv")
-phenotypeMW<- fread("./data/phenotypeMW.csv")
-
-#changing numerical variable into factor for the model
-
-phenotypeEF<- transform(phenoEF,
-                        TAXA= factor(TAXA),
-                        LOC= factor(LOC),
-                        Name2= factor(Name2),
-                        Set= factor(Set),
-                        block= factor(block),
-                        range= factor(range),
-                        row= factor(row))
-
-phenotypeMW<- transform(phenoMW,
-                        TAXA= factor(TAXA),
-                        LOC= factor(LOC),
-                        Name2= factor(Name2),
-                        Set= factor(Set),
-                        block= factor(block),
-                        range= factor(range),
-                        row= factor(row))
-hist(phenotypeEF$SLA)
-#---- Alternately comparing the identity,ar1 and diagonal model for the blues of Narea and SLA to find the best model than the general identity residual model
-
-#----for Narea in location EF
-
-modeliden <- asreml(
-  fixed = Narea ~ Name2,
-  random =  ~  Set + block,
-  residual =  ~ id(range):id(row),
-  data = phenotypeEF, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "Name2",sed = TRUE))
-
-summary(modeliden)$aic
-plot(modeliden)
-modeliden$loglik
-
-blueiden<-summary(modeliden,coef=TRUE)$coef.fixed
-head(blueiden)
-modelar<- asreml(fixed = Narea ~ Name2,
-                 random =  ~ Set + block,
-                 residual = ~ar1(range) :ar1(row),
-                 data = phenotypeEF, na.action = na.method(x = c("include")),
-                 predict = predict.asreml(classify = "Name2",sed = TRUE))
-summary(modelar)$aic
-plot(modelar)
-bluesar<-summary(modelar,coef=TRUE)$coef.fixed
-head(bluesar)
-modelar$loglik
-
-#--for SLA in LOC EF
-modeliden1 <- asreml(
-  fixed = SLA ~ Name2,
-  random =  ~  Set + block,
-  residual =  ~ id(range):id(row),
-  data = phenotypeEF, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "Name2",sed = TRUE))
-summary(modeliden1)$aic
-plot(modeliden1)
-modeliden1$loglik
-
-blueiden1<-summary(modeliden1,coef=TRUE)$coef.fixed
-head(blueiden1)
-
-modelar1<- asreml(fixed = SLA ~ Name2,
-                  random =  ~ Set + block,
-                  residual = ~ar1(range) :ar1(row),
-                  data = phenotypeEF, na.action = na.method(x = c("include")),
-                  predict = predict.asreml(classify = "Name2",sed = TRUE))
-summary(modelar1)$aic
-plot(modelar1)
-bluesar1<-summary(modelar1,coef=TRUE)$coef.fixed
-head(bluesar1)
-modelar1$loglik
-
-#------------for location MW
-#--for Narea
-
-modeliden2 <- asreml(
-  fixed = Narea ~ Name2,
-  random =  ~  Set + block,
-  residual =  ~ id(range):id(row),
-  data = phenotypeMW, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "Name2",sed = TRUE))
-
-summary(modeliden2)$aic
-plot(modeliden2)
-
-modelar2<- asreml(fixed = Narea ~ Name2,
-                  random =  ~ Set + block,
-                  residual = ~ar1(range) :ar1(row),
-                  data = phenotypeMW, na.action = na.method(x = c("include")),
-                  predict = predict.asreml(classify = "Name2",sed = TRUE))
-
-summary(modelar2)$aic
-plot(modelar2)
-
-#-----for SLA
-
-modeliden3 <- asreml(
-  fixed = SLA ~ Name2,
-  random =  ~  Set + block,
-  residual =  ~ id(range):id(row),
-  data = phenotypeMW, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "Name2",sed = TRUE))
-
-summary(modeliden3)$aic
-plot(modeliden3)
-
-modelar3<- asreml(fixed = SLA ~ Name2,
-                  random =  ~ Set + block,
-                  residual = ~ar1(range) :ar1(row),
-                  data = phenotypeMW, na.action = na.method(x = c("include")),
-                  predict = predict.asreml(classify = "Name2",sed = TRUE))
-summary(modelar3)$aic
-plot(modelar3)
 #Aic and Bic of identity residual model was the lowest than ar1 and diag so using the blues obtained from previous for loop for second stage analysis
   
 
