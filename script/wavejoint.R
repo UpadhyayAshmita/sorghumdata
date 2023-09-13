@@ -8,12 +8,12 @@ library(dplyr)
 library(janitor)
 
 asreml.options(
-  workspace = '64gb',
-  pworkspace = '64gb'
+  workspace = '8gb',
+  pworkspace = '8gb'
 )
 
 # ---------------------loading data---------------------
-design<- fread('./data/design.csv')
+design<- fread('./data/design.csv', data.table = F)
 
 # ---------------------processing of data---------------------
 
@@ -31,7 +31,7 @@ design<-
 
 
 #calculating blues for each wavelength 
-variables <- colnames(design)[10:2160]
+variables <- colnames(design)[10:13]
 models <- vector("list",length(variables))
 waveblues <-data.frame()
 
@@ -73,14 +73,13 @@ for (i in 1:length(variables)) {
       cat('\n')
     }
     
-    
   },
   
   error = function(err) {
     message("An error occured")
     print(err)
   })
-  
+
 }
 
 
