@@ -3,48 +3,83 @@
 library(tidyverse)
 library(asreml)
 library(data.table)
-library(purrr)
-library(tidyverse)
 library(ASRgenomics)
-
+library(dplyr)
+library(janitor)
 
 # ---------------------loading data---------------------
-designnew<- fread('./data/designnew.csv',data.table= FALSE)
+design<- fread('./data/design.csv',data.table= FALSE)
 
 # ---------------------processing of data---------------------
 
-designnew<-
-  designnew %>% mutate(
-    Name2 = factor(Name2),
-    TAXA = factor(TAXA),
-    LOC = factor(LOC),
-    Set = factor(Set),
+design<-
+  design |> clean_names() |> mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
     block = factor(block),
     range = factor(range),
     row = factor(row),
     uni = c(1:960, 1:960)
-  ) %>%   arrange(LOC, range, row)
+  ) |>   arrange(loc, range, row)
 
 
-designnew$LOC <- factor(designnew$LOC, levels = c('EF', 'MW'))
-designnew <- designnew[order(designnew$LOC), ]
+#calculating blues for each wavelength 
+variables <- colnames(design)[10:2160]
+models <- vector("list",length(variables))
+wavebluesEF <-data.frame()
 
-# ---------------------calculating wavelength blues for locationEF---------------------
+# ---------------------fitting model---------------------
 
-models <- list()
-variables <- colnames(designnew)[11:2161]
-wavebluesEF <- data.frame()  #n rows and 2 columns
-wavebluesEF[,1] <- variables
-colnames(wavebluesEF) <- c("wave", "blues")
-rownames(wavebluesEF) <- variables
-for(i in 1:length(variables)) {models[[i]] <- asreml(
-  fixed = get(variables[i]) ~ Name2 + Set,
-  random = ~ block,
-  residual =  ~ ar1(range):ar1(row),
-  data = designnew, subset = LOC== "EF", na.action= na.method(x = "include"),
-  predict = predict.asreml(classify = "Name2", sed = TRUE))
-temp2 <- models[[i]]$predictions$pvals[, 1:2]
-temp2$wave <- variables[i]
-wavebluesEF <- rbind(wavebluesMW, temp2)}
+for (i in 1:length(variables)) {
+  cat(variables[i], '\n')
+  tryCatch({
+    model <- asreml(
+      fixed = get(variables[i]) ~set + name2,
+      random = ~block,
+      residual =  ~ar1(range):ar1(row),
+      data = design,subset= loc== "EF", na.action = na.method(x = "include"),
+      predict = predict.asreml(classify = "name2", sed = TRUE)
+    )
+    
+    if (!model$converge) {
+      
+      model <- update.asreml(model)
+      
+    }
+    
+    if (model$converge) {
+      
+      models[[i]] <- model
+      
+      #---------------------storing prediction---------------------
+      temp <- models[[i]]$predictions$pvals[, 1:2]
+      temp$wave <- variables[i]
+      wavebluesEF <- bind_rows(wavebluesEF, temp)
+      cat('\n')
+      
+    }  else {
+      wavebluesEF <- bind_rows(wavebluesEF, data.frame(name2 = NA,
+                                                       predicted.value = NA,
+                                                       wave = variables[i]))
+      cat('\n')
+    }
+    
+    
+  },
+  
+  error = function(err) {
+    message("An error occured")
+    print(err)
+  })
+  
+}
 
-fwrite("./output/wavebluesMW.csv", row.names = FALSE)
+
+fwrite( wavebluesEF, "./output/wavebluesEF.csv", row.names = FALSE)
+
+
+
+
+
