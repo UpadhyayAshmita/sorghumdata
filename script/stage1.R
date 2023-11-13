@@ -499,3 +499,4 @@ fwrite(nareabluesmw,"./traitsoutput/nareabluesmw.csv", row.names = F)
 
 fwrite(slabluesef,"./traitsoutput/slabluesef.csv", row.names = F)
 fwrite(slabluesmw,"./traitsoutput/slabluesmw.csv", row.names = F)
+
