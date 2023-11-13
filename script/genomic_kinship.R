@@ -40,7 +40,7 @@ kin_A_dt <- as.data.table(kin_A)
 fwrite(kin_A_dt, "kinship_additive.txt", sep = "\t", quote = FALSE)
 
 #reading data file and bending matrix and obtaining inverse of kinship matrix 
-kin<- fread('./output/kinship_additive.txt', data.table= F)
+kin<- fread('./relmatrices/kinship_additive.txt', data.table= F)
 rownames(kin) <- colnames(kin)
 Gb <- G.tuneup(G = as.matrix(kin), bend = TRUE, eig.tol = 1e-06)$Gb
 GINV <- G.inverse(G = Gb , sparseform = T)
