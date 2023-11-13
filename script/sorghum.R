@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(asreml)
 source('./script/outlier.R')
@@ -13,48 +12,58 @@ library(janitor)
 
 #reading field design and wavelength data and filtering year 16 ("wavelength data available for year 16)
 
-design<- read.csv('./data/design.csv') %>% filter(year!= 16)
-averagedspectra <- read.csv('./data/Averaged_Spectra.csv')
+design<- fread('./data/phenotypes.csv') %>% clean_names()
+averagedspectra <- fread('./data/Averaged_Spectra.csv') %>% clean_names()
 
 averagedspectra <- averagedspectra %>%
   separate_wider_delim(
-    Spectra,
+    spectra,
     delim = "_",
-    names = c("Spectra", "plotnum"),
+    names = c("spectra", "plotnum"),
     cols_remove = T
   ) %>%
   select(-plotnum) %>%
-  group_by(Spectra) %>%
+  group_by(spectra) %>%
   summarise_all(mean) %>%
   ungroup() %>%
-  rename(PlotID = Spectra)
+  rename(plot_id = spectra)
 
-designnew<- left_join(design,averagedspectra, by = "PlotID") # Apply left_join dplyr function
+designnew<- design %>%
+  left_join(averagedspectra, by = "plot_id")
 
-#finding 7 different check varieties that are replicated in all block inside each set in location "EF"
+fwrite(designnew, './data/phenotypic_data.csv')
 
-is_check_ef <- table(design[design$loc == 'EF', ]$name2) > 1
-checks_ef <- names(is_check_ef[is_check_ef == TRUE])
+##for location EF
+# 
+# desplot::desplot(
+#   design%>% filter(loc == "EF"),
+#   block ~ range * row,
+#   out2 = block,
+#   out1 = set,
+#   cex = 0.7,
+#   ticks = T
+# )
+# 
+# 
+# #for location MW
+# desplot::desplot(
+#   design %>% filter(loc == "MW"),
+#   block ~ range * row,
+#   out2 = block,
+#   out1 = set,
+#   cex = 0.7,
+#   ticks = T, text= name2,
+# )
 
+summary(phenotypedata)
+table(phenotypedata$taxa,phenotypedata$set) #checks are replicated 8 times in each four set while other genotypes are replicated only 2 times in each set
+round(cor(phenotypedata[,10:11],use="pairwise.complete.obs"),5)# narea and sla is negatively correlated i.e -0.6298
 
-##finding 7 different check varieties that are replicated in all block inside each set in location "MW"
+#desplot for location "EF"
 
-is_check_mw<- table(design[design$loc == 'MW', ]$name2) > 1
-checks_mw <- names(is_check_mw[is_check_mw == TRUE])
-
-
-is_check_efsingle <- table(design[design$loc == 'EF',]$name2) >16
-check_efsingle<- names(is_check_efsingle[is_check_efsingle == TRUE]) #so we can see check var "spx" is replicated 17 times while other 6 check varieties are replicated 16th times one in each block inside four sets in each location "EF" and " MW".
-
-#write.csv(designnew, './data/designnew.csv')
-
-designnew<- fread('./data/designnew.csv', data.table = FALSE)
-
-
-#for location EF
 
 desplot::desplot(
-  design%>% filter(loc == "EF"),
+  phenotypedata%>% filter(loc == "EF"),
   block ~ range * row,
   out2 = block,
   out1 = set,
@@ -63,15 +72,45 @@ desplot::desplot(
 )
 
 
-#for location MW
-desplot::desplot(
-  design %>% filter(loc == "MW"),
-  block ~ range * row,
-  out2 = block,
-  out1 = set,
-  cex = 0.7,
-  ticks = T, text= name2,
+#desplot for location "MW"
+desplot::desplot(phenotypedata%>% filter(loc == "MW"),
+                 block ~ range * row,
+                 out2 = block,
+                 out1 = set,
+                 cex = 0.7,
+                 ticks = T
 )
+
+head(phenotypedata)
+str(phenotypedata)
+
+#exploring more through visual plot 
+
+ExpNumStat(waveblues, by="A", round= 2) %>%  flextable()
+
+phenotypic_data%>% explore()
+
+
+
+# ---------------------reading phenotypic data for trait of interest---------------------
+
+
+
+phenotypedata<- read.csv('./data/phenotypes.csv')
+
+# ---------------------preprocessing of data---------------------
+
+phenotypedata<-
+  phenotypedata %>% clean_names()%>% mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
+    block = factor(block),
+    range = factor(range),
+    row = factor(row),
+    uni = c(1:960, 1:960)
+  ) %>%   arrange(loc, range, row)
 
 
 asreml.options(
@@ -82,9 +121,7 @@ asreml.options(
 
 
 # ---------------------load data---------------------
-designnew<- fread('./data/designnew.csv',data.table= FALSE)
-
-
+#designnew<- fread('./data/designnew.csv',data.table= FALSE)
 
 # ---------------------processing data---------------------
 designnew<-
@@ -295,7 +332,6 @@ wavebluesEF <- data.frame()
 
 #fwrite(wavebluesEF,"./output/wavebluesEF.csv")
 
-
 #creating relationship matrix for each location and joint location from blues obtained for wavelength
 
 #generating relationship matrix for whole spectra
@@ -418,8 +454,15 @@ ExpNumStat(waveblues, by="A", round= 2) %>%  flextable()
 designnew%>% explore()
 
 
-#reading phenotypic data
+
+# ---------------------reading phenotypic data for trait of interest---------------------
+
+
+
 phenotypedata<- read.csv('./data/phenotypes.csv')
+
+# ---------------------preprocessing of data---------------------
+
 phenotypedata<-
   phenotypedata %>% clean_names()%>% mutate(
     name2 = factor(name2),
@@ -432,7 +475,9 @@ phenotypedata<-
     uni = c(1:960, 1:960)
   ) %>%   arrange(loc, range, row)
 
-#calculating heritability of narea for mw location 
+# -------------------calculating heritability for narea for each location---------------------
+
+# ---------------------fitting model---------------------
 
 nareaMW <- asreml(
   fixed = narea ~ set,
@@ -464,16 +509,34 @@ nareaMW <- asreml(
     nareaMW<- update.asreml(nareaMW)
     }
  
- temp <- (1 - ((nareaMW$predictions$avsed["mean"] ^ 2) /(2 * summary(nareaMW)$varcomp["name2", "component"])))
- #0.587
  
- fwrite(phenotypedata, "./data/phenotypedataMW.csv", row.names= FALSE)
+ # ---------------------calculating and storing the heritability---------------------
+ 
+  temp <- (1 - ((nareaMW$predictions$avsed["mean"] ^ 2) /(2 * summary(nareaMW)$varcomp["name2", "component"])))
+ 
+ # ---------------------h2 was found 0.587 for narea for location mw---------------------
+ 
+# ---------------------storing outlier filtered data for location mw---------------------
+ 
+#fwrite(phenotypedata, "./data/phenotypedataMW.csv", row.names= FALSE)
+
+ 
+ 
+# ---------------------reading data---------------------
+ 
 phenotypedataMW<-  fread("./data/phenotypedataMW.csv")
+
+ # ---------------------checking residual plot for the model---------------------
+  
+plot(h2narea)
  
- plot(h2narea)
  
- #calculating heritability for n area for EF location
  
+ 
+# ---------------------calculating heritability for narea for ef location---------------------
+
+# ---------------------fitting model---------------------
+
 nareaEF <- asreml(
    fixed = narea ~ set,
    random = ~name2 + block,
@@ -501,14 +564,33 @@ nareaEF<- update.asreml(nareaEF)
      predict = predict.asreml(classify = "name2", sed = TRUE)
    )
    nareaEF<- update.asreml(nareaEF)
- }
+   }
+
+# ---------------------calculating and storing heritability---------------------
+
  temp2<- (1 - ((nareaEF$predictions$avsed["mean"] ^ 2) /(2 * summary(nareaEF)$varcomp["name2", "component"])))
+
+# ---------------------saving outliers filtered data for location ef for narea---------------------
+
  fwrite(phenotypedata, "./data/phenotypedataEF.csv", row.names= FALSE)
 
- #h2 -0.355
+
+# ---------------------h2 for narea for loc ef was 0.355---------------------
+
+
+# ---------------------checking residual plot---------------------
+
+  plot(nareaEF)
+
+
+
+
+
+# ---------------------calculating heritability for sla for MW location---------------------
  
- plot(nareaEF)
-#calculating heritability for sla for MW location 
+
+# ---------------------fitting model---------------------
+
  slaMW <- asreml(
    fixed = sla ~ set,
    random = ~name2 + block,
@@ -536,13 +618,27 @@ nareaEF<- update.asreml(nareaEF)
      predict = predict.asreml(classify = "name2", sed = TRUE)
    )
    slaMW<- update.asreml(slaMW)
- }
+   }
+ 
+ # ---------------------calculating and storing heritability---------------------
+ 
  temp3 <- (1 - ((slaMW$predictions$avsed["mean"] ^ 2) /(2 * summary(slaMW)$varcomp["name2", "component"])))
+ 
+ # ---------------------storing outliers filtered data for sla for loc mw---------------------
+ 
  fwrite(phenotypedata, "./data/phenotypedataslaMW.csv", row.names= FALSE)
+ 
+ 
+ 
+ # ---------------------checking residual plot---------------------
  
  plot(slaMW)
  
- #calculating heritability for sla for EF location 
+# ---------------------calculating heritability for sla for EF location ---------------------
+
+ 
+# ---------------------fitting model---------------------
+
  slaEF <- asreml(
    fixed = sla ~ set,
    random = ~name2 + block,
@@ -570,12 +666,30 @@ nareaEF<- update.asreml(nareaEF)
    )
    slaEF<- update.asreml(slaEF)
  }
+ 
+ 
+ # ---------------------calculating and storing h2 for sla for loc ef---------------------
+ 
  temp4 <- (1 - ((slaEF$predictions$avsed["mean"] ^ 2) /(2 * summary(slaEF)$varcomp["name2", "component"])))
  
- fwrite(phenotypedata, "./data/phenotypedataslaEF.csv", row.names= FALSE) 
+ 
+ 
+ # ---------------------storing outliers filtered data for sla for loc ef---------------------
+ 
+ fwrite(phenotypedata, "./data/phenotypedataslaEF.csv", row.names= FALSE)
+ 
+ 
+ # ---------------------residual plot---------------------
+ 
  plot(slaEF)
  
- #joint heritability model for narea 
+ 
+ 
+ 
+# ---------------------joint heritability model for narea ---------------------
+
+ 
+ # ---------------------binding both location narea outliers filtered data to pass into joint model---------------------
  
  narea_ef<- fread('./data/phenotypedataEF.csv',data.table= FALSE) |>
    filter(loc == "EF")
@@ -583,7 +697,19 @@ nareaEF<- update.asreml(nareaEF)
    filter(loc == "MW")
  
  narea<- bind_rows(narea_ef, narea_mw)
+ 
+ 
+ # ---------------------storing narea outliers filtered both location data as narea---------------------
+ 
  fwrite(narea, "./data/narea.csv",row.names = F)
+ 
+ 
+ 
+ # ---------------------reading the data ---------------------
+ narea<- fread("./data/narea.csv", data.table= F)
+ 
+ # ---------------------preprocessing of data---------------------
+ 
  narea<-
    narea %>% clean_names()%>% mutate(
      name2 = factor(name2),
@@ -597,6 +723,9 @@ nareaEF<- update.asreml(nareaEF)
    ) %>%   arrange(loc, range, row)
  
  
+ 
+ # ---------------------fitting the model ---------------------
+ 
  nareajointh2 <- asreml(
    fixed = narea ~ set + loc + loc: set,
    random = ~name2 + loc:block + loc:name2,
@@ -607,10 +736,17 @@ nareaEF<- update.asreml(nareaEF)
  
  nareajointh2<- update.asreml(nareajointh2)
  
+ # ---------------------calulating h2 for narea joint loc---------------------
+ 
+ 
  temp5 <- (1 - ((nareajointh2$predictions$avsed["mean"] ^ 2) /(2 * summary(nareajointh2)$varcomp["name2", "component"])))
  
  
- #joint heritability of sla trait 
+ 
+ 
+ 
+# -----------------------binding both location outliers filtered sla data into one-------------------
+
  
  sla_ef<- fread('./data/phenotypedataslaEF.csv',data.table= FALSE) |>
    filter(loc == "EF")
@@ -618,7 +754,19 @@ nareaEF<- update.asreml(nareaEF)
    filter(loc == "MW")
  
  sla<- bind_rows(sla_ef, sla_mw)
+ 
+ 
+ # ---------------------storing binded both location outliers filtered data into one file sla---------------------
+ 
  fwrite(sla, "./data/sla.csv",row.names = F)
+ 
+ 
+ # ---------------------reading the sla data for combined location---------------------
+ sla<- fread("./data/sla.csv", data.table = F)
+ 
+ 
+ # ---------------------preprocessing of data---------------------
+ 
  sla<-
    sla %>% clean_names()%>% mutate(
      name2 = factor(name2),
@@ -631,6 +779,11 @@ nareaEF<- update.asreml(nareaEF)
      uni = c(1:960, 1:960)
    ) %>%   arrange(loc, range, row)
  
+ 
+ 
+ 
+# ---------------------model fitting---------------------
+
  slajointh2 <- asreml(
    fixed = sla ~ set + loc + loc: set,
    random = ~name2 + loc:block + loc:name2,
@@ -641,12 +794,27 @@ nareaEF<- update.asreml(nareaEF)
  
  slajointh2<- update.asreml(slajointh2)
  
+ 
+ #calculating h2 for joint location for sla
+ 
  temp6 <- (1 - ((slajointh2$predictions$avsed["mean"] ^ 2) /(2 * summary(slajointh2)$varcomp["name2", "component"])))
  
  
+
  
-phenotypedataEF<- fread("./data/phenotypedataEF.csv")
-phenotypedata<- phenotypedata %>% clean_names()%>% mutate(
+ 
+# ---------------------calculating blues for narea and sla with outliers filtered data narea and sla---------------------
+
+ 
+# ---------------------finding best model---------------------
+
+ 
+narea<- subset(narea, select= -sla)
+sla<- subset(sla, select= -narea)
+
+
+ 
+multitrait<- multitrait %>% clean_names()%>% mutate(
   name2 = factor(name2),
   taxa = factor(taxa),
   loc = factor(loc),
@@ -656,24 +824,28 @@ phenotypedata<- phenotypedata %>% clean_names()%>% mutate(
   row = factor(row),
   uni = c(1:960, 1:960)
 ) %>%   arrange(loc, range, row)
-
-#blues for location EF for trait narea
- modar1<-  asreml(fixed = sla ~ name2 +set + loc: set+ loc:name2,
-                           random =  ~ block+ loc:block,
-                           residual = ~id(loc):ar1(range):ar1(row),
-                           data = sla, na.action = na.method(x = c("include")),
-                           predict = predict.asreml(classify = "name2",sed = TRUE))
- modar1<- update.asreml(modar1)
  
- summary(modar1)$aic
- plot(modar1)
+ 
+
+#blues for location EF for trait narea 
+ 
+ 
+modar1<-  asreml(fixed = narea ~ name2 +set,
+                           random =  ~ block,
+                           residual = ~ar1(range):ar1(row),
+                           data = narea, subset= loc== "EF",na.action = na.method(x = c("include")),
+                           predict = predict.asreml(classify = "name2",sed = TRUE))
+modar1<- update.asreml(modar1)
+ 
+summary(modar1)$aic
+plot(modar1)
  
  
  modeliden <- asreml(
-   fixed = sla ~ name2+ set,
+   fixed = narea ~ name2+ set,
    random =  ~block,
    residual =  ~ id(range):id(row),
-   data = sla,subset= loc== "EF", na.action = na.method(x = c("include")),
+   data = narea,subset= loc== "EF", na.action = na.method(x = c("include")),
    predict = predict.asreml(classify = "name2",sed = TRUE))
  
  modeliden<- update.asreml(modeliden)
@@ -681,6 +853,46 @@ phenotypedata<- phenotypedata %>% clean_names()%>% mutate(
  summary(modeliden)$aic
  plot(modeliden)
 
+ 
+ 
+ # ---------------------binding both trait both location filtered data---------------------
+ 
+ narea<- subset(narea, select= -sla)
+ sla<- subset(sla, select= -narea)
+ 
+ multitrait<- full_join(narea, sla)
+ #fwrite(multitrait,"./data/multitrait.csv", row.names = F)
+ 
+ 
+ # ---------------------reading data---------------------
+ library(janitor)
+ library(dplyr)
+ multitrait<- fread("./data/multitrait.csv", data.table = F)
+ Names_WEST<- fread("./data/Names_WEST_SF.csv", data.table = F)
+ 
+ length(unique(multitrait$taxa))
+  length(unique(Names_WEST$Name2))
+ 
+ 
+ 
+ # ---------------------preprocessing data---------------------
+ 
+ 
+ multitrait<- multitrait %>% clean_names()%>% mutate(
+   name2 = factor(name2),
+   taxa = factor(taxa),
+   loc = factor(loc),
+   set = factor(set),
+   block = factor(block),
+   range = factor(range),
+   row = factor(row),
+   uni = c(1:960, 1:960)
+ ) %>%   arrange(loc, range, row)
+ 
+ 
+ 
+ 
+ 
 #calculating BLUES of narea and sla for  EF location 
 models <- list()
 bluesEF <- list()
@@ -688,12 +900,19 @@ a <- 1
 
 for(i in c("narea","sla")){
  
+  
+  # ---------------------fitting model---------------------
+  
   models[[i]] <- asreml(
-    fixed = get(i) ~ name2+set,
+    fixed = get(i) ~ name2 +set,
     random =  ~  block,
     #residual =  ~ id(range):id(row),
-    data = phenotypedata, subset = loc == "EF", na.action = na.method(x = c("include")),
+    data = multitrait, subset = loc == "EF", na.action = na.method(x = c("include")),
     predict = predict.asreml(classify = "name2",sed = TRUE))
+  
+  
+  # ---------------------storing prediction---------------------
+  
   bluesEF[[i]] <-   models[[i]]$predictions$pvals[,1:2]
   colnames(bluesEF[[i]]) <- c("name2", i)
   a <- a + 1
@@ -706,12 +925,18 @@ models <- list()
 bluesMW <- list()
 a <- 1
 for(i in c("narea","sla")){
+  
+  # ---------------------fitting model---------------------
+  
   models[[i]] <- asreml(
     fixed = get(i) ~ set+ name2,
     random =  ~  block,
     #residual =  ~ id(range):id(row),
-    data = phenotypedata, subset = loc == "MW", na.action = na.method(x = c("include")),
+    data = multitrait, subset = loc == "MW", na.action = na.method(x = c("include")),
     predict = predict.asreml(classify = "name2",sed = TRUE))
+  
+  # ---------------------storing prediction---------------------
+  
   bluesMW[[i]] <-   models[[i]]$predictions$pvals[,1:2]  
   colnames(bluesMW[[i]]) <- c("name2", i)
   a <- a + 1}
@@ -723,24 +948,51 @@ for(i in c("narea","sla")){
 #filtering out rows with Na's values in the "narea" column, obtained final "blues" data frame with the mean "blues" values for each unique "taxa".
 
 
-
-
 blues <- 
   bind_rows(
   "EF" = bluesEF %>% reduce(left_join, by = "name2"),
   "MW" = bluesMW %>% reduce(left_join, by = "name2"),
-  .id = "loc") %>% left_join(phenotypedata %>% filter(!duplicated(name2)) %>% select(name2, taxa)
-    )
+  .id = "loc") %>% left_join(multitrait %>% filter(!duplicated(name2)) %>% select(name2))
+    
+length(unique(blues$name2))
 
-blues <- droplevels(blues[blues$taxa %in% rownames(kin), ]) %>% group_by(taxa) %>% select(-name2)
+Names_WEST$Name2 <- gsub(" ", "", Names_WEST$Name2)
+colnames(Names_WEST)[colnames(Names_WEST)== "Name2"]<- "name2"
+blues <- blues |> left_join(Names_WEST %>% dplyr::select(name2, Corrected_names)) %>% mutate(taxa = ifelse((name2 != Corrected_names) & grepl("PI", Corrected_names), NA, Corrected_names))
+
+blues<- subset(blues, !is.na(taxa))
+
+
+#blues_taxa <- droplevels(blues[blues$taxa %in% rownames(kin), ]) 
+length(unique(blues$taxa))
+blues<- drop_na(blues)
 
 
 
-fwrite(blues, "./output/blues.csv")
 
-#-----reading the blues data file-----
-blues<- fread("./output/blues.csv")
 
+# ---------------------storing blues value for both trait and both location---------------------
+
+
+  fwrite(blues, "./traitsoutput/blues.csv")
+
+
+# ---------------------reading the blues data file---------------------
+
+
+blues<- fread("./traitsoutput/blues.csv")
+
+nareabluesef<- subset(blues, loc== "EF") %>% select(-4)
+nareabluesmw<- subset(blues, loc== "MW") %>% select(-4)
+slabluesef<- subset(blues, loc== "EF") %>% select(-3)
+slabluesmw<- subset(blues, loc== "MW") %>% select(-3)
+
+
+fwrite(nareabluesef,"./traitsoutput/nareabluesef.csv", row.names = F)
+fwrite(nareabluesmw,"./traitsoutput/nareabluesmw.csv", row.names = F)
+
+fwrite(slabluesef,"./traitsoutput/slabluesef.csv", row.names = F)
+fwrite(slabluesmw,"./traitsoutput/slabluesmw.csv", row.names = F)
 
 # alternative model for first stage 
 #Aic and Bic of identity residual model was the lowest than ar1 and diag so using the blues obtained from previous for loop for second stage analysis

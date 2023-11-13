@@ -72,22 +72,15 @@ for (i in 1:length(variables)) {
     
       cat('\n')
     }
-<<<<<<< HEAD
-    
-=======
->>>>>>> 5fb769c08183f81975db6d9019d3517ebd4e2729
   },
   
   error = function(err) {
     message("An error occured")
     print(err)
   })
-<<<<<<< HEAD
 
-=======
   rm(model)
   gc()
->>>>>>> 5fb769c08183f81975db6d9019d3517ebd4e2729
 }
 
 
