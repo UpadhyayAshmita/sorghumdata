@@ -3,11 +3,6 @@ library(asreml)
 source('./script/outlier.R')
 library(data.table)
 library(ASRgenomics)
-library(flextable)
-library(dplyr)
-library(SmartEDA)
-library(explore)
-library(patchwork)
 library(janitor)
 
 #reading field design and wavelength data and filtering year 16 ("wavelength data available for year 16)
@@ -30,9 +25,6 @@ averagedspectra <- averagedspectra %>%
 
 designnew<- design %>%
   left_join(averagedspectra, by = "plot_id")
-
-fwrite(designnew, './data/phenotypic_data.csv')
-
 ##for location EF
 # 
 # desplot::desplot(
@@ -54,90 +46,28 @@ fwrite(designnew, './data/phenotypic_data.csv')
 #   cex = 0.7,
 #   ticks = T, text= name2,
 # )
-
-summary(phenotypedata)
-table(phenotypedata$taxa,phenotypedata$set) #checks are replicated 8 times in each four set while other genotypes are replicated only 2 times in each set
-round(cor(phenotypedata[,10:11],use="pairwise.complete.obs"),5)# narea and sla is negatively correlated i.e -0.6298
-
 #desplot for location "EF"
-
-
-desplot::desplot(
-  phenotypedata%>% filter(loc == "EF"),
-  block ~ range * row,
-  out2 = block,
-  out1 = set,
-  cex = 0.7,
-  ticks = T
-)
-
-
-#desplot for location "MW"
-desplot::desplot(phenotypedata%>% filter(loc == "MW"),
-                 block ~ range * row,
-                 out2 = block,
-                 out1 = set,
-                 cex = 0.7,
-                 ticks = T
-)
-
-head(phenotypedata)
-str(phenotypedata)
-
-#exploring more through visual plot 
-
-ExpNumStat(waveblues, by="A", round= 2) %>%  flextable()
-
-phenotypic_data%>% explore()
-
-
-
+# desplot::desplot(
+#   phenotypedata%>% filter(loc == "EF"),
+#   block ~ range * row,
+#   out2 = block,
+#   out1 = set,
+#   cex = 0.7,
+#   ticks = T
+# )
+# #desplot for location "MW"
+# desplot::desplot(phenotypedata%>% filter(loc == "MW"),
+#                  block ~ range * row,
+#                  out2 = block,
+#                  out1 = set,
+#                  cex = 0.7,
+#                  ticks = T
+# )
+# 
+# head(phenotypedata)
+# str(phenotypedata)
 # ---------------------reading phenotypic data for trait of interest---------------------
-
-
-
 phenotypedata<- read.csv('./data/phenotypes.csv')
-
-# ---------------------preprocessing of data---------------------
-
-phenotypedata<-
-  phenotypedata %>% clean_names()%>% mutate(
-    name2 = factor(name2),
-    taxa = factor(taxa),
-    loc = factor(loc),
-    set = factor(set),
-    block = factor(block),
-    range = factor(range),
-    row = factor(row),
-    uni = c(1:960, 1:960)
-  ) %>%   arrange(loc, range, row)
-
-
-asreml.options(
-  workspace = '8gb',
-  pworkspace = '8gb'
-)
-
-
-
-# ---------------------load data---------------------
-#designnew<- fread('./data/designnew.csv',data.table= FALSE)
-
-# ---------------------processing data---------------------
-designnew<-
-  designnew %>% clean_names() %>% mutate(
-    name2 = factor(name2),
-    taxa = factor(taxa),
-    loc = factor(loc),
-    set = factor(set),
-    block = factor(block),
-    range = factor(range),
-    row = factor(row),
-    uni = c(1:960, 1:960)
-  ) %>%   arrange(loc, range, row)
-
-
-
 
 
 # ---------------------calculating heritability of each wavelength--------------------

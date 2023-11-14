@@ -18,20 +18,18 @@ blues<- fread("./traitsoutput/blues.csv")
 #reading blues from first stage analysis for narea 
 # blues for narea trait
 
-#Nitroblues <- subset(blues, select = c("taxa", "narea"))
-#fwrite(Nitroblues, "./traitsoutput/nitroblues.csv",row.names = FALSE)
+Nitroblues <- subset(blues, select = c("taxa", "narea"))
+fwrite(Nitroblues, "./traitsoutput/nitroblues.csv",row.names = FALSE)
 
-#nitroblues<- fread("./traitsoutput/nitroblues.csv")
+nitroblues<- fread("./traitsoutput/nitroblues.csv")
 # blues for sla trait
-#slablues <- subset(blues, select = c("taxa", "sla"))
+slablues <- subset(blues, select = c("taxa", "sla"))
 #fwrite(slablues, "./traitsoutput/slablues.csv", row.names = F)
 
 nitroblues<- fread("./traitsoutput/nitroblues.csv")
 nareabluesef<- fread("./traitsoutput/nareabluesef.csv")
 nareabluesmw<- fread("./traitsoutput/nareabluesmw.csv")
 
-nitroblues<- transform(nitroblues,
-                       taxa= factor(taxa))
 # ---------------------performing cross validation for joint location for narea trait---------------------
 
 
