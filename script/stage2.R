@@ -45,7 +45,6 @@ result_N <-
     scheme= "joint"
   )
 corr_N_joint<- data.frame(result_N$ac)
-
 # ---------------------SLA-running cross validation for joint loc---------------------
 result_S<- crossv(sort = sort,
                   train = bluesjoint_sla_correct,
@@ -127,39 +126,6 @@ wavebluesMW_wider_corrected<- transform(wavebluesMW_wider_corrected,
 # ---------------------cross validation set---------------------
 sort<- create_folds(individuals=wavebluesMW_wider_corrected$taxa, nfolds= 5, reps= 20, seed= 157)
 result<- crossv(sort = sort,train = slabluesef, validation = slabluesmw, mytrait = "sla", GINV = GINV)
-# --------------------fitting model---------------------
-acN <- c()
-gebv_mwvsef <- list()
-for(j in 1:length(sort)){
-  rN<-list()
-  for(i in 1:5){
-    test<-wavebluesmw_wider_corrected
-    test[test$taxa %in% sort[[j]][[i]],"narea"] <- NA
-    cat(i, j,"\n")
-    # ---------------------fitting model---------------------
-    
-    modelN <- asreml(
-      fixed = narea ~ 1,
-      random =  ~  vm(taxa, source = GINV$Ginv.sparse),
-      data = wavebluesMW_wider_corrected, na.action = na.method(x = "include"),
-      predict = predict.asreml(classify = "taxa"))
-    cat("\n")
-    
-    # Update if necessary
-    if(!modelN$converge){ modelN <- update.asreml(modelN) }
-    if(!modelN$converge){ modelN <- update.asreml(modelN) }
-    
-    rN[[i]] <- modelN$predictions$pvals[modelN$predictions$pvals$taxa %in% sort[[j]][[i]],1:2]
-  }
-  
-  raN<- Reduce(rbind, rN)
-  gebv_efvsmw[[j]] <- raN
-  raN <- raN %>% left_join(wavebluesef_wider_corrected[,c("taxa", "narea")])
-  acN[j]<-cor(raN[,2], raN[,3], use = "complete.obs")
-}
-fwrite( raN, "./output/gebv_mwvsef.csv", sep = "\t", col.names = T)
-gebv_mwvsef<- fread("./output/gebv_mwvsef.csv")
-cor<- cor.test(gebv_mwvsef$predicted.value, gebv_mwvsef$narea)
 
 #fitting second stage for sla using wavebluesEF as a train set and wavebluesMW as a validation set 
 # ---------------------fitting model and cross validation using wavebluesef and waveblues mw for sla trait of ineterst---------------------
