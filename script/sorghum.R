@@ -1,73 +1,106 @@
+
 library(tidyverse)
 library(asreml)
 source('./script/outlier.R')
 library(data.table)
 library(ASRgenomics)
+library(flextable)
+library(dplyr)
+library(SmartEDA)
+library(explore)
+library(patchwork)
 library(janitor)
 
 #reading field design and wavelength data and filtering year 16 ("wavelength data available for year 16)
 
-design<- fread('./data/phenotypes.csv') %>% clean_names()
-averagedspectra <- fread('./data/Averaged_Spectra.csv') %>% clean_names()
+design<- read.csv('./data/design.csv') %>% filter(year!= 16)
+averagedspectra <- read.csv('./data/Averaged_Spectra.csv')
 
 averagedspectra <- averagedspectra %>%
   separate_wider_delim(
-    spectra,
+    Spectra,
     delim = "_",
-    names = c("spectra", "plotnum"),
+    names = c("Spectra", "plotnum"),
     cols_remove = T
   ) %>%
   select(-plotnum) %>%
-  group_by(spectra) %>%
+  group_by(Spectra) %>%
   summarise_all(mean) %>%
   ungroup() %>%
-  rename(plot_id = spectra)
+  rename(PlotID = Spectra)
 
-designnew<- design %>%
-  left_join(averagedspectra, by = "plot_id")
-##for location EF
-# 
-# desplot::desplot(
-#   design%>% filter(loc == "EF"),
-#   block ~ range * row,
-#   out2 = block,
-#   out1 = set,
-#   cex = 0.7,
-#   ticks = T
-# )
-# 
-# 
-# #for location MW
-# desplot::desplot(
-#   design %>% filter(loc == "MW"),
-#   block ~ range * row,
-#   out2 = block,
-#   out1 = set,
-#   cex = 0.7,
-#   ticks = T, text= name2,
-# )
-#desplot for location "EF"
-# desplot::desplot(
-#   phenotypedata%>% filter(loc == "EF"),
-#   block ~ range * row,
-#   out2 = block,
-#   out1 = set,
-#   cex = 0.7,
-#   ticks = T
-# )
-# #desplot for location "MW"
-# desplot::desplot(phenotypedata%>% filter(loc == "MW"),
-#                  block ~ range * row,
-#                  out2 = block,
-#                  out1 = set,
-#                  cex = 0.7,
-#                  ticks = T
-# )
-# 
-# head(phenotypedata)
-# str(phenotypedata)
-# ---------------------reading phenotypic data for trait of interest---------------------
-phenotypedata<- read.csv('./data/phenotypes.csv')
+designnew<- left_join(design,averagedspectra, by = "PlotID") # Apply left_join dplyr function
+
+#finding 7 different check varieties that are replicated in all block inside each set in location "EF"
+
+is_check_ef <- table(design[design$loc == 'EF', ]$name2) > 1
+checks_ef <- names(is_check_ef[is_check_ef == TRUE])
+
+
+##finding 7 different check varieties that are replicated in all block inside each set in location "MW"
+
+is_check_mw<- table(design[design$loc == 'MW', ]$name2) > 1
+checks_mw <- names(is_check_mw[is_check_mw == TRUE])
+
+
+is_check_efsingle <- table(design[design$loc == 'EF',]$name2) >16
+check_efsingle<- names(is_check_efsingle[is_check_efsingle == TRUE]) #so we can see check var "spx" is replicated 17 times while other 6 check varieties are replicated 16th times one in each block inside four sets in each location "EF" and " MW".
+
+#write.csv(designnew, './data/designnew.csv')
+
+designnew<- fread('./data/designnew.csv', data.table = FALSE)
+
+
+#for location EF
+
+desplot::desplot(
+  design%>% filter(loc == "EF"),
+  block ~ range * row,
+  out2 = block,
+  out1 = set,
+  cex = 0.7,
+  ticks = T
+)
+
+
+#for location MW
+desplot::desplot(
+  design %>% filter(loc == "MW"),
+  block ~ range * row,
+  out2 = block,
+  out1 = set,
+  cex = 0.7,
+  ticks = T, text= name2,
+)
+
+
+asreml.options(
+  workspace = '8gb',
+  pworkspace = '8gb'
+)
+
+
+
+# ---------------------load data---------------------
+designnew<- fread('./data/designnew.csv',data.table= FALSE)
+
+
+
+# ---------------------processing data---------------------
+designnew<-
+  designnew %>% clean_names() %>% mutate(
+    name2 = factor(name2),
+    taxa = factor(taxa),
+    loc = factor(loc),
+    set = factor(set),
+    block = factor(block),
+    range = factor(range),
+    row = factor(row),
+    uni = c(1:960, 1:960)
+  ) %>%   arrange(loc, range, row)
+
+
+
 
 
 # ---------------------calculating heritability of each wavelength--------------------
@@ -890,13 +923,14 @@ Names_WEST$Name2 <- gsub(" ", "", Names_WEST$Name2)
 colnames(Names_WEST)[colnames(Names_WEST)== "Name2"]<- "name2"
 blues <- blues |> left_join(Names_WEST %>% dplyr::select(name2, Corrected_names)) %>% mutate(taxa = ifelse((name2 != Corrected_names) & grepl("PI", Corrected_names), NA, Corrected_names))
 
-blues<- subset(blues, !is.na(taxa))
 
 
-#blues_taxa <- droplevels(blues[blues$taxa %in% rownames(kin), ]) 
-length(unique(blues$taxa))
-blues<- drop_na(blues)
+blues<- droplevels(blues[blues$taxa %in% rownames(kin), ])
+ 
 
+
+
+length(unique(blues_taxa$taxa))
 
 
 
@@ -912,10 +946,10 @@ blues<- drop_na(blues)
 
 blues<- fread("./traitsoutput/blues.csv")
 
-nareabluesef<- subset(blues, loc== "EF") %>% select(-4)
-nareabluesmw<- subset(blues, loc== "MW") %>% select(-4)
-slabluesef<- subset(blues, loc== "EF") %>% select(-3)
-slabluesmw<- subset(blues, loc== "MW") %>% select(-3)
+nareabluesef<- subset(blues, loc== "EF") %>% select(-3)
+nareabluesmw<- subset(blues, loc== "MW") %>% select(-3)
+slabluesef<- subset(blues, loc== "EF") %>% select(-2)
+slabluesmw<- subset(blues, loc== "MW") %>% select(-2)
 
 
 fwrite(nareabluesef,"./traitsoutput/nareabluesef.csv", row.names = F)

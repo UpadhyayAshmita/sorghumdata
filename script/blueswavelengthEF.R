@@ -7,13 +7,16 @@ library(ASRgenomics)
 library(dplyr)
 library(janitor)
 
-# ---------------------loading data---------------------
-design<- fread('./data/design.csv',data.table= FALSE)
+#calculating blues for MW location for each wavelength 
+asreml.options(
+  workspace = '8gb',
+  pworkspace = '8gb'
+)
 
+phenotypic_data_joint<- fread('./data/phenotypic_data_joint.csv',data.table= FALSE)
 # ---------------------processing of data---------------------
-
-design<-
-  design |> clean_names() |> mutate(
+phenotypic_data_joint<-
+  phenotypic_data_joint |> clean_names() |> mutate(
     name2 = factor(name2),
     taxa = factor(taxa),
     loc = factor(loc),
@@ -21,17 +24,11 @@ design<-
     block = factor(block),
     range = factor(range),
     row = factor(row),
-    uni = c(1:960, 1:960)
   ) |>   arrange(loc, range, row)
-
-
-#calculating blues for each wavelength 
-variables <- colnames(design)[10:2160]
+variables <- colnames(phenotypic_data_joint)[12:2162]
 models <- vector("list",length(variables))
 wavebluesEF <-data.frame()
-
 # ---------------------fitting model---------------------
-
 for (i in 1:length(variables)) {
   cat(variables[i], '\n')
   tryCatch({
@@ -39,20 +36,14 @@ for (i in 1:length(variables)) {
       fixed = get(variables[i]) ~set + name2,
       random = ~block,
       residual =  ~ar1(range):ar1(row),
-      data = design,subset= loc== "EF", na.action = na.method(x = "include"),
+      data = phenotypic_data_joint,subset= loc== "EF", na.action = na.method(x = "include"),
       predict = predict.asreml(classify = "name2", sed = TRUE)
     )
-    
     if (!model$converge) {
-      
       model <- update.asreml(model)
-      
     }
-    
     if (model$converge) {
-      
       models[[i]] <- model
-      
       #---------------------storing prediction---------------------
       temp <- models[[i]]$predictions$pvals[, 1:2]
       temp$wave <- variables[i]
@@ -65,20 +56,11 @@ for (i in 1:length(variables)) {
                                                        wave = variables[i]))
       cat('\n')
     }
-    
-    
   },
   
   error = function(err) {
     message("An error occured")
     print(err)
   })
-  
 }
-
-
 fwrite( wavebluesEF, "./output/wavebluesEF.csv", row.names = FALSE)
-
-
-
-
