@@ -2,7 +2,7 @@
 crossv <- function(sort,
                    train,
                    validation,
-                   GINV,
+                    GINV,
                    mytrait,
                    data,
                    scheme
@@ -16,15 +16,19 @@ crossv <- function(sort,
   for(j in 1:length(sort)){
     r<-list()
     for(i in 1:5){
-      test<-train
+      test<-na.omit(train)
       test[test$taxa %in% sort[[j]][[i]], mytrait ] <- NA
       cat(i, j,"\n")
       # ---------------------fitting model---------------------
       
       model <- asreml(
         fixed = get(mytrait) ~ 1, 
-        random =  ~ vm(taxa, source = GINV$Ginv.sparse),
+        random =  ~ vm(taxa,source = GINV$Ginv.sparse),#source= kin, singG= "NSD")
         data = test, na.action = na.method(x = "include"),
+        family = asr_gaussian (dispersion = 1), #those are the important things
+        weights = W, #those are the important things
+        maxit = 50,
+        trace = FALSE,
         predict = predict.asreml(classify = "taxa"))
       
       # Update if necessary

@@ -600,72 +600,145 @@ multitrait<-
     row = factor(row),
   ) |>   arrange(loc, range, row)
 
+
 # ---------------------NareaEF blues fitting model---------------------
-  nareablues_ef <- asreml(
-    fixed = narea ~ name2 +set,
-    random =  ~  block,
-    #residual =  ~ id(range):id(row),
-    data = multitrait, subset = loc == "EF", 
-    na.action = na.method(x = c("include")),
-    predict = predict.asreml(classify = "name2",sed = TRUE))
+nareablues_ef_simpler <- asreml(
+  fixed = narea ~ name2 +set,
+  random =  ~  block,
+  #residual =  ~ ar1(range):ar1(row),
+  data = multitrait, subset = loc == "EF", 
+  na.action = na.method(x = c("include")))
+  nareablues_ef_simpler <- update.asreml(nareablues_ef_simpler)
+nareablues_ef <- asreml(
+  fixed = narea ~ name2 +set,
+  random =  ~  block,
+  residual =  ~ ar1(range):ar1(row),
+  data = multitrait, subset = loc == "EF", 
+  na.action = na.method(x = c("include")),
+  G.param = nareablues_ef_simpler$G.param,
+  R.param = nareablues_ef_simpler$R.param,
+  predict = predict.asreml(classify = "name2",vcov = TRUE)
+)
+nareablues_ef<- update.asreml(nareablues_ef)
+nareablues_ef<- update.asreml(nareablues_ef)
   # ---------------------storing prediction---------------------
-  nareablues_ef <- nareablues_ef$predictions$pvals[,1:2]
+w <- as.matrix(nareablues_ef$predictions$vcov)
+not_missing <- !is.na(nareablues_ef$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+nareablues_ef = data.frame(name2 = nareablues_ef$predictions$pvals$name2,
+                        predicted.value = round(nareablues_ef$predictions$pvals$predicted.value, 3),
+                        W = ifelse(not_missing, w, NA))
 fwrite(nareablues_ef,"./output/traitsoutput/nareablues_ef.csv", row.names = F)
 # ---------------------SlaEF blues fitting model---------------------
+slablues_ef_simpler <- asreml(
+  fixed = sla ~ name2 +set,
+  random =  ~  block,
+  #residual =  ~ ar1(range):ar1(row),
+  data = multitrait, subset = loc == "EF", 
+  na.action = na.method(x = c("include")))
+  slablues_ef_simpler<- update.asreml(slablues_ef_simpler)
 slablues_ef <- asreml(
   fixed = sla ~ name2 +set,
   random =  ~  block,
-  #residual =  ~ id(range):id(row),
+  residual =  ~ ar1(range):ar1(row),
   data = multitrait, subset = loc == "EF", 
   na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "name2",sed = TRUE))
+  G.param = slablues_ef_simpler$G.param,
+  R.param = slablues_ef_simpler$R.param,
+  predict = predict.asreml(classify = "name2",vcov = TRUE))
+slablues_ef<- update.asreml(slablues_ef)
+
 # ---------------------storing prediction---------------------
-slablues_ef <- slablues_ef$predictions$pvals[,1:2]
+w <- as.matrix(slablues_ef$predictions$vcov)
+not_missing <- !is.na(slablues_ef$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+slablues_ef = data.frame(name2 = slablues_ef$predictions$pvals$name2,
+                           predicted.value = round(slablues_ef$predictions$pvals$predicted.value, 3),
+                           W = ifelse(not_missing, w, NA))
 fwrite(slablues_ef,"./output/traitsoutput/slablues_ef.csv", row.names = F)
 #BLUES of narea and sla for MW location
 # ---------------------fitting model---------------------
-  nareablues_mw <- asreml(
+  nareablues_mw_simpler <- asreml(
     fixed = narea ~ set+ name2,
     random =  ~  block,
-    #residual =  ~ id(range):id(row),
+    #residual =  ~ ar1(range):ar1(row),
     data = multitrait, subset = loc == "MW", 
-    na.action = na.method(x = c("include")),
-    predict = predict.asreml(classify = "name2",sed = TRUE))
+    na.action = na.method(x = c("include")))
+
+nareablues_mw_simpler<- update.asreml(nareablues_mw_simpler)
+nareablues_mw <- asreml(
+  fixed = narea ~ set+ name2,
+  random =  ~  block,
+  residual =  ~ ar1(range):ar1(row),
+  data = multitrait, subset = loc == "MW", 
+  na.action = na.method(x = c("include")),
+  G.param = nareablues_mw_simpler$G.param,
+  R.param = nareablues_mw_simpler$R.param,
+  predict = predict.asreml(classify = "name2",vcov = TRUE))
+nareablues_mw<- update.asreml(nareablues_mw)
+
   # ---------------------storing prediction---------------------
-  nareablues_mw <-nareablues_mw$predictions$pvals[,1:2]  
+w <- as.matrix(nareablues_mw$predictions$vcov)
+not_missing <- !is.na(nareablues_mw$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+nareablues_mw = data.frame(name2 = nareablues_mw$predictions$pvals$name2,
+                           predicted.value = round(nareablues_mw$predictions$pvals$predicted.value, 3),
+                           W = ifelse(not_missing, w, NA)) 
 fwrite(nareablues_mw,"./output/traitsoutput/nareablues_mw.csv", row.names = F)
 # ---------------------SLA-EF model fitting for blues---------------------
 slablues_mw <- asreml(
   fixed = sla ~ set+ name2,
   random =  ~  block,
-  #residual =  ~ id(range):id(row),
+  residual =  ~ ar1(range):ar1(row),
   data = multitrait, subset = loc == "MW", 
   na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "name2",sed = TRUE))
+  predict = predict.asreml(classify = "name2",vcov = TRUE))
+slablues_mw<- update.asreml(slablues_mw)
 # ---------------------storing prediction---------------------
-slablues_mw <- slablues_mw$predictions$pvals[,1:2]  
+w <- as.matrix(slablues_mw$predictions$vcov)
+not_missing <- !is.na(slablues_mw$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+slablues_mw = data.frame(name2 = slablues_mw$predictions$pvals$name2,
+                         predicted.value = round(slablues_mw$predictions$pvals$predicted.value, 3),
+                         W = ifelse(not_missing, w, NA))
 fwrite(slablues_mw,"./output/traitsoutput/slablues_mw.csv", row.names = F)
 # ---------------------calculating blues for joint location for narea and sla
 # ---------------------SLAjoint - fitting model---------------------
 bluesjoint_sla <- asreml(
   fixed = sla ~ loc + set + loc:set + name2 + name2:loc,
   random =  ~ loc:block,
-  residual =  ~ corgh(loc):id(range):id(row),
+  residual =  ~ corgh(loc):ar1(range):ar1(row),
   data = multitrait, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "name2",sed = TRUE))
+  predict = predict.asreml(classify = "name2",vcov = TRUE))
   # ---------------------storing prediction---------------------
-  bluesjoint_sla <- bluesjoint_sla$predictions$pvals[,1:2]
+w <- as.matrix(bluesjoint_sla$predictions$vcov)
+not_missing <- !is.na(bluesjoint_sla$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+bluesjoint_sla= data.frame(name2 = bluesjoint_sla$predictions$pvals$name2,
+                         predicted.value = round(bluesjoint_sla$predictions$pvals$predicted.value, 3),
+                         W = ifelse(not_missing, w, NA))
 fwrite(bluesjoint_sla,"./output/traitsoutput/bluesjoint_sla.csv", row.names = F)
 
 # ---------------------N-joint model fitting for blues---------------------
 bluesjoint_narea <- asreml(
   fixed = narea ~ loc + set + loc:set + name2 + name2:loc,
   random =  ~ loc:block,
-  residual =  ~ corgh(loc):id(range):id(row),
+  residual =  ~ corgh(loc):ar1(range):ar1(row),
   data = multitrait, na.action = na.method(x = c("include")),
-  predict = predict.asreml(classify = "name2",sed = TRUE))
+  predict = predict.asreml(classify = "name2",vcov = TRUE))
 # ---------------------storing prediction---------------------
-bluesjoint_narea <- bluesjoint_narea$predictions$pvals[,1:2]
+w <- as.matrix(bluesjoint_narea$predictions$vcov)
+not_missing <- !is.na(bluesjoint_narea$predictions$pvals$predicted.value)
+w <- w[not_missing , not_missing]
+w <- round(diag(solve(w)), 3) #Smith et al 2001
+bluesjoint_narea= data.frame(name2 = bluesjoint_narea$predictions$pvals$name2,
+                           predicted.value = round(bluesjoint_narea$predictions$pvals$predicted.value, 3),
+                           W = ifelse(not_missing, w, NA))
 write.csv(bluesjoint_narea, "./output/traitsoutput/bluesjoint_narea.csv", row.names = F)
 # -------------filtering name2 based on corrected name from name_west file-----
 Names_WEST<- fread("./data/Names_WEST_SF.csv")
@@ -677,7 +750,7 @@ bluesjoint_narea_correct <-fread("./output/traitsoutput/bluesjoint_narea.csv")|>
                       grepl("PI", Corrected_names), NA, Corrected_names))
 bluesjoint_narea_correct<- subset(bluesjoint_narea_correct, !is.na(taxa))%>% 
   select(-name2,-Corrected_names)
-bluesjoint_narea_correct$predicted.value[is.na(bluesjoint_narea_correct$predicted.value)]<- median(bluesjoint_narea_correct$predicted.value, na.rm = T )
+#bluesjoint_narea_correct$predicted.value[is.na(bluesjoint_narea_correct$predicted.value)]<- median(bluesjoint_narea_correct$predicted.value, na.rm = T )
 
 bluesjoint_sla_correct <- fread("./output/traitsoutput/bluesjoint_sla.csv")|>
   left_join(Names_WEST %>% 
@@ -686,35 +759,35 @@ bluesjoint_sla_correct <- fread("./output/traitsoutput/bluesjoint_sla.csv")|>
                          grepl("PI", Corrected_names), NA, Corrected_names))
 bluesjoint_sla_correct<- subset(bluesjoint_sla_correct, !is.na(taxa))%>% 
   select(-name2,-Corrected_names)
-bluesjoint_sla_correct$predicted.value[is.na(bluesjoint_sla_correct$predicted.value)]<- median(bluesjoint_sla_correct$predicted.value, na.rm = T )
+#bluesjoint_sla_correct$predicted.value[is.na(bluesjoint_sla_correct$predicted.value)]<- median(bluesjoint_sla_correct$predicted.value, na.rm = T )
 
 nareablues_mw_correct<- fread("./output/traitsoutput/nareablues_mw.csv") %>% 
   left_join(Names_WEST %>%dplyr::select(name2, Corrected_names)) %>% 
   mutate(taxa = ifelse((name2 != Corrected_names) & 
  grepl("PI", Corrected_names), NA, Corrected_names))
 nareablues_mw_correct<- subset(nareablues_mw_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
-nareablues_mw_correct$predicted.value[is.na(nareablues_mw_correct$predicted.value)]<- median(nareablues_mw_correct$predicted.value, na.rm = T )
+# nareablues_mw_correct$predicted.value[is.na(nareablues_mw_correct$predicted.value)]<- median(nareablues_mw_correct$predicted.value, na.rm = T )
 
 nareablues_ef_correct<- fread("./output/traitsoutput/nareablues_ef.csv") %>% 
   left_join(Names_WEST %>%dplyr::select(name2, Corrected_names)) %>% 
   mutate(taxa = ifelse((name2 != Corrected_names) & 
                          grepl("PI", Corrected_names), NA, Corrected_names))
 nareablues_ef_correct<- subset(nareablues_ef_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
-nareablues_ef_correct$predicted.value[is.na(nareablues_ef_correct$predicted.value)]<- median(nareablues_ef_correct$predicted.value, na.rm = T )
+# nareablues_ef_correct$predicted.value[is.na(nareablues_ef_correct$predicted.value)]<- median(nareablues_ef_correct$predicted.value, na.rm = T )
 
 slablues_ef_correct<- fread("./output/traitsoutput/slablues_ef.csv") %>% 
   left_join(Names_WEST %>% dplyr::select(name2, Corrected_names)) %>% 
   mutate(taxa = ifelse((name2 != Corrected_names) & 
                          grepl("PI", Corrected_names), NA, Corrected_names))
-slablues_ef_correct<- subset(slablues_ef_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
-slablues_ef_correct$predicted.value[is.na(slablues_ef_correct$predicted.value)]<- median(slablues_ef_correct$predicted.value, na.rm = T )
+ slablues_ef_correct<- subset(slablues_ef_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
+# slablues_ef_correct$predicted.value[is.na(slablues_ef_correct$predicted.value)]<- median(slablues_ef_correct$predicted.value, na.rm = T )
 
 slablues_mw_correct<- fread("./output/traitsoutput/slablues_mw.csv")%>% 
   left_join(Names_WEST %>% dplyr::select(name2, Corrected_names)) %>% 
   mutate(taxa = ifelse((name2 != Corrected_names) & 
                          grepl("PI", Corrected_names), NA, Corrected_names))
-slablues_mw_correct<- subset(slablues_mw_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
-slablues_mw_correct$predicted.value[is.na(slablues_mw_correct$predicted.value)]<- median(slablues_mw_correct$predicted.value, na.rm = T )
+ slablues_mw_correct<- subset(slablues_mw_correct, !is.na(taxa))%>% select(-name2,-Corrected_names)
+# slablues_mw_correct$predicted.value[is.na(slablues_mw_correct$predicted.value)]<- median(slablues_mw_correct$predicted.value, na.rm = T )
 
 
 

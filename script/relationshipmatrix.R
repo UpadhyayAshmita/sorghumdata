@@ -43,10 +43,11 @@ fwrite(kin_A_dt, "./data/relmatrices/kinship_additive.txt", sep = "\t", quote = 
 #reading data file and bending matrix and obtaining inverse of kinship matrix 
 kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
 rownames(kin) <- colnames(kin)
-Gb <- G.tuneup(G = as.matrix(kin), bend = TRUE, eig.tol = 1e-06)$Gb
-GINV <- G.inverse(G = Gb , sparseform = T)
-saveRDS(GINV, file = "./data/relmatrices/GINV.rds")
-GINV <- readRDS(file = "./data/relmatrices/GINV.rds")
+kin<- as.matrix(kin)
+# Gb <- G.tuneup(G = as.matrix(kin), bend = TRUE, eig.tol = 1e-06)$Gb
+# GINV <- G.inverse(G = Gb , sparseform = T)
+# saveRDS(GINV, file = "./data/relmatrices/GINV.rds")
+# GINV <- readRDS(file = "./data/relmatrices/GINV.rds")
 # ---------------------reading the data for wavelength with blues and wavelength that had na(which didn't converged)---------------------
 wavebluesEF_wider<- fread("./output/wavebluesEF_wider.csv")
 # ---------------------left joining corrected name with name2 from wavelength blues to filter individual that are also present in genotypic data ---------------------
@@ -72,6 +73,12 @@ wavenirs<-wavebluesEF_wider_corrected %>%select(taxa,"wave_860":"wave_1660")
 re_nirs_ef<- calculate_relationship(wavenirs)
 write.csv(re_nirs_ef,'./data/relmatrices/re_nirs_ef.csv', row.names= F)
 re_nirs_ef<- read.csv('./data/relmatrices/re_nirs_ef.csv')
+rownames(re_nirs_ef) <- colnames(re_nirs_ef)
+Gb <- G.tuneup(G = as.matrix(re_nirs_ef), bend = TRUE, eig.tol = 1e-06)$Gb
+nirs_inv_ef<- G.inverse(G = Gb , sparseform = T)
+saveRDS(nirs_inv_ef, file = "./data/relmatrices/nirs_inv_ef.rds")
+nirs_inv_ef <- readRDS(file = "./data/relmatrices/nirs_inv_ef.rds")
+
 # ---------------------for selecting genotype with higher heritability---------------------
 # ---------------------reading h2 for ef location---------------------
 h2ef<-fread('./output/h2EF.csv',data.table = F) #reading h2 data
@@ -119,6 +126,13 @@ fwrite(wavenirsmw,"./output/intermediate/wavenirsmw.csv")
 re_nirs_mw<- calculate_relationship(wavenirsmw)
 write.csv(re_nirs_mw,'./data/relmatrices/re_nirs_mw.csv', row.names = F)
 re_nirs_mw<- read.csv('./data/relmatrices/re_nirs_mw.csv')
+rownames(re_nirs_mw) <- colnames(re_nirs_mw)
+Gb <- G.tuneup(G = as.matrix(re_nirs_mw), bend = TRUE, eig.tol = 1e-06)$Gb
+nirs_inv_mw<- G.inverse(G = Gb , sparseform = T)
+saveRDS(nirs_inv_mw, file = "./data/relmatrices/nirs_inv_mw.rds")
+nirs_inv_mw <- readRDS(file = "./data/relmatrices/nirs_inv_mw.rds")
+
+
 #for selecting genotype with higher heritability
 h2MW_binded<-fread('./output/h2MW_binded.csv',data.table = F)#reading h2 data
 #visualizing trend in plot with wavelegth vs heritability 
@@ -167,6 +181,10 @@ fwrite(wavenirsjoint,"./output/intermediate/wavenirsjoint.csv")
 re_nirs_joint<- calculate_relationship(wavenirsjoint)
 write.csv(re_nirs_joint,'./data/relmatrices/re_nirs_joint.csv', row.names = F)
 re_nirs_joint<- read.csv('./data/relmatrices/re_nirs_joint.csv')
+rownames(re_nirs_joint) <- colnames(re_nirs_joint)
+Gb <- G.tuneup(G = as.matrix(re_nirs_joint), bend = TRUE, eig.tol = 1e-06)$Gb
+nirs_inv<- G.inverse(G = Gb , sparseform = T)
+saveRDS(nirs_inv, file = "./data/relmatrices/nirs_inv.rds")
 # ---------------------calculating highly h2 matrix---------------------
 h2joint<- fread("./output/h2.csv", data.table = FALSE)
 # ---------------------visualizing trend in plot with wavelegth vs heritability ---------------------
