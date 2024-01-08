@@ -42,8 +42,9 @@ result_N <-
     scheme= "joint"
   )
 corr_N_joint<- data.frame(result_N$ac)
+#fwrite(corr_N_joint, "./output/GBLUP/ corr_N_joint.csv")
 # ---------------------SLA-running cross validation for joint loc---------------------
-result_S<- crossv(sort = sort,
+result_S <- crossv(sort = sort,
                   train = bluesjoint_sla_correct,
                   validation = bluesjoint_sla_correct, 
                   mytrait = "sla", 
@@ -51,7 +52,7 @@ result_S<- crossv(sort = sort,
                   data = "GBLUP",
                   scheme= "joint")
 corr_S_joint<- data.frame(result_S$ac)
-
+# fwrite(corr_S_joint, "./output/GBLUP/ corr_S_joint.csv")
 # ---------------------SLA-running cross validation for ...---------------------
 #SLA- CV with ef as a train and mw validation
 result_sla_efmw<- crossv(sort = sort,
@@ -62,6 +63,8 @@ result_sla_efmw<- crossv(sort = sort,
                   data = "GBLUP",
                   scheme = "efmw")
 corr_S_efmw<- data.frame(result_sla_efmw$ac)
+#fwrite(corr_S_efmw, "./output/GBLUP/ corr_S_efmw.csv")
+
 # ---------------------SLA-running cross validation for joint loc---------------------
 #narea training the model withef and validating on nareabluesmw--------------------
 result_narea_efmw<- crossv(sort = sort,
@@ -73,6 +76,8 @@ result_narea_efmw<- crossv(sort = sort,
                          scheme = "efmw"
                          )
 corr_N_efmw<- data.frame(result_narea_efmw$ac)
+#fwrite(corr_N_efmw, "./output/GBLUP/ corr_N_efmw.csv")
+
 boxplot(corr_N_efmw$result_narea_efmw.ac)
 #narea training the model with mw and validating on ef--------------------
 result_narea_mwef<- crossv(sort = sort,
@@ -83,16 +88,19 @@ result_narea_mwef<- crossv(sort = sort,
                            data = "GBLUP",
                            scheme = "mwef")
 corr_N_mwef<- data.frame(result_narea_mwef$ac)
+#fwrite(corr_N_mwef, "./output/GBLUP/ corr_N_mwef.csv")
+
 #SLA training the model with mw and validating on ef--------------------
 result_sla_mwef<- crossv(sort = sort,
                            train = slablues_mw_correct,
                            validation = slablues_ef_correct, 
                            mytrait = "sla", 
-                           kin = kin,
+                           GINV= GINV,
                          data = "GBLUP",
                          scheme = "mwef")
 
 corr_S_mwef<- data.frame(result_sla_mwef$ac)
+#fwrite(corr_S_mwef, "./output/GBLUP/ corr_S_mwef.csv")
 
 #NIRS model
 sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, reps = 20, seed = 135)
@@ -121,12 +129,14 @@ result_S_nirs <-
     scheme= "nirs_joint"
   )
 corr_S_nirs_joint<- data.frame(result_S_nirs$ac)
-sla_NIRS_joint<- fread("./output/NIRS/sla_joint.csv")
+#sla_NIRS_joint<- fread("./output/NIRS/sla_joint.csv")
 #narea training ef validating mw using NIRS ef
-re_nirs_ef<- read.csv('./data/relmatrices/re_nirs_ef.csv')
-rownames(re_nirs_ef) <- colnames(re_nirs_ef)
-Gb <- G.tuneup(G = as.matrix(re_nirs_ef), bend = TRUE, eig.tol = 1e-06)$Gb
-nirs_inv_ef<- G.inverse(G = Gb , sparseform = T)
+#re_nirs_ef<- read.csv('./data/relmatrices/re_nirs_ef.csv')
+# rownames(re_nirs_ef) <- colnames(re_nirs_ef)
+# Gb <- G.tuneup(G = as.matrix(re_nirs_ef), bend = TRUE, eig.tol = 1e-06)$Gb
+# nirs_inv_ef<- G.inverse(G = Gb , sparseform = T)
+# saveRDS(nirs_inv_ef, file = "./data/relmatrices/nirs_inv_ef.rds")
+nirs_inv_ef<- readRDS(file = "./data/relmatrices/nirs_inv_ef.rds")
 result_narea_nirs_efmw<- crossv(sort = sort,
                            train = nareablues_ef_correct,
                            validation = nareablues_mw_correct, 
@@ -135,7 +145,6 @@ result_narea_nirs_efmw<- crossv(sort = sort,
                            data = "NIRS",
                            scheme = "nirs_efmw"
 )
-
 #narea training mw validating ef using NIRSmw
 nirs_inv_mw <- readRDS(file = "./data/relmatrices/nirs_inv_mw.rds")
 result_narea_nirs_mwef<- crossv(sort = sort,
@@ -147,7 +156,7 @@ result_narea_nirs_mwef<- crossv(sort = sort,
                                 scheme = "nirs_mwef"
 )
 corr_N_nirs_mwef<- data.frame(result_narea_nirs_mwef$ac)
-fwrite(corr_N_nirs_mwef, "./output/NIRS/ corr_N_nirs_mwef.csv")
+#fwrite(corr_N_nirs_mwef, "./output/NIRS/ corr_N_nirs_mwef.csv")
 #sla training ef validating mw using nirs ef matrix
 result_sla_nirs_efmw<- crossv(sort = sort,
                                 train = slablues_ef_correct,
@@ -165,10 +174,9 @@ result_sla_nirs_mwef<- crossv(sort = sort,
                               data = "NIRS",
                               scheme = "nirs_mwef")
 corr_sla_nirs_mwef<- data.frame(result_sla_nirs_mwef$ac)
-fwrite(corr_sla_nirs_mwef, "./output/NIRS/ corr_sla_nirs_mwef.csv")
+#fwrite(corr_sla_nirs_mwef, "./output/NIRS/ corr_sla_nirs_mwef.csv")
 
 #whole wave model
-
 # re_w_joint<- read.csv("./data/relmatrices/re_w_joint.csv")
 # rownames(re_w_joint) <- colnames(re_w_joint)
 # Gb <- G.tuneup(G = as.matrix(re_w_joint), bend = TRUE, eig.tol = 1e-06)$Gb
@@ -188,7 +196,7 @@ result_N_wholewave<-
     scheme= "wholewave_joint"
   )
 corr_N_wholewave_joint<- data.frame(result_N_wholewave$ac)
-fwrite(corr_N_wholewave_joint, "./output/wholewave/corr_N_wholewave_joint.csv")
+#fwrite(corr_N_wholewave_joint, "./output/wholewave/corr_N_wholewave_joint.csv")
 
 # -----SLA-running cross validation for joint loc using whole wave info---------------------
 result_S_wholewave<- crossv(sort = sort,
@@ -199,7 +207,7 @@ result_S_wholewave<- crossv(sort = sort,
                   data = "wholewave",
                   scheme= "wholewave_joint")
 corr_S_wholewave_joint<- data.frame(result_S_wholewave$ac)
-fwrite(corr_S_wholewave_joint, "./output/wholewave/corr_S_wholewave_joint.csv")
+#fwrite(corr_S_wholewave_joint, "./output/wholewave/corr_S_wholewave_joint.csv")
 
 #------narea training ef validating mw using whole wave ef
 # re_w_ef<- read.csv('./data/relmatrices/re_w_ef.csv')
@@ -217,7 +225,7 @@ result_narea_wholewave_efmw<- crossv(sort = sort,
                                 scheme = "wholewave_efmw"
 )
 corr_N_wholewave_efmw<- data.frame(result_narea_wholewave_efmw$ac)
-fwrite(corr_N_wholewave_efmw, "./output/wholewave/corr_N_wholewave_efmw.csv")
+#fwrite(corr_N_wholewave_efmw, "./output/wholewave/corr_N_wholewave_efmw.csv")
 #narea training mw validating ef using wholewave mw
 # re_w_mw<- read.csv('./data/relmatrices/re_w_MW.csv')
 # rownames(re_w_mw) <- colnames(re_w_mw)
@@ -234,7 +242,7 @@ result_narea_wholewave_mwef<- crossv(sort = sort,
                                      scheme = "wholewave_mwef"
 )
 corr_N_wholewave_mwef<- data.frame(result_narea_wholewave_mwef$ac)
-fwrite(corr_N_wholewave_mwef, "./output/wholewave/corr_N_wholewave_mwef.csv")
+#fwrite(corr_N_wholewave_mwef, "./output/wholewave/corr_N_wholewave_mwef.csv")
 #sla training ef and validating mw using wholewave ef
 re_w_ef_inv <- readRDS(file = "./data/relmatrices/re_w_ef_inv.rds")
 result_sla_wholewave_efmw<- crossv(sort = sort,
@@ -247,8 +255,6 @@ result_sla_wholewave_efmw<- crossv(sort = sort,
 )
 corr_S_wholewave_efmw<- data.frame(result_sla_wholewave_efmw$ac)
 #fwrite(corr_S_wholewave_efmw, "./output/wholewave/corr_S_wholewave_efmw.csv")
-
-
 #sla training mw validating ef using wholewave mw
 re_w_mw_inv <- readRDS(file = "./data/relmatrices/re_w_mw_inv.rds")
 result_sla_wholewave_mwef<- crossv(sort = sort,
@@ -260,9 +266,9 @@ result_sla_wholewave_mwef<- crossv(sort = sort,
                                      scheme = "wholewave_mwef"
 )
 corr_S_wholewave_mwef<- data.frame(result_sla_wholewave_mwef$ac)
-fwrite(corr_S_wholewave_mwef, "./output/wholewave/corr_S_wholewave_mwef.csv")
+#fwrite(corr_S_wholewave_mwef, "./output/wholewave/corr_S_wholewave_mwef.csv")
 
-#highly heritable models using high heritable relationship matrix for joint loc
+#--highly heritable models using high heritable relationship matrix for jointloc
 # # re_h2_joint<- read.csv("./data/relmatrices/re_h2_joint.csv")
 # # rownames(re_h2_joint) <- colnames(re_h2_joint)
 # # Gb <- G.tuneup(G = as.matrix(re_h2_joint), bend = TRUE, eig.tol = 1e-06)$Gb
@@ -283,7 +289,6 @@ result_N_highh2_joint<-
   )
 corr_N_highh2_joint<- data.frame(result_N_highh2_joint$ac)
 #fwrite(corr_N_highh2_joint, "./output/highh2/corr_N_highh2_joint.csv")
-
 # -----SLA-running cv for joint loc using highh2 matrix--------------------
 result_S_highh2_joint<- crossv(sort = sort,
                             train = bluesjoint_sla_correct,
@@ -293,8 +298,7 @@ result_S_highh2_joint<- crossv(sort = sort,
                             data = "highh2",
                             scheme= "highh2_joint")
 corr_S_highh2_joint<- data.frame(result_S_highh2_joint$ac)
-fwrite(corr_S_highh2_joint, "./output/highh2/corr_S_highh2_joint.csv")
-
+#fwrite(corr_S_highh2_joint, "./output/highh2/corr_S_highh2_joint.csv")
 #------narea training ef validating mw using high h2 ef loc matrix
 # re_h2_ef<-read.csv("./data/relmatrices/re_h2_ef.csv")
 # rownames(re_h2_ef) <- colnames(re_h2_ef)
@@ -311,7 +315,7 @@ result_narea_highh2_efmw<- crossv(sort = sort,
                                      scheme = "highh2_efmw"
 )
 corr_N_highh2_efmw<- data.frame(result_narea_highh2_efmw$ac)
-fwrite(corr_N_highh2_efmw, "./output/highh2/corr_N_highh2_efmw.csv")
+#fwrite(corr_N_highh2_efmw, "./output/highh2/corr_N_highh2_efmw.csv")
 #narea training mw validating ef using highh2 mw matrix
 # re_h2_mw<-read.csv("./data/relmatrices/re_h2_mw.csv")
 # rownames(re_h2_mw) <- colnames(re_h2_mw)
@@ -329,7 +333,6 @@ result_narea_h2_mwef<- crossv(sort = sort,
 )
 corr_N_highh2_mwef<- data.frame(result_narea_h2_mwef$ac)
 #fwrite(corr_N_highh2_mwef, "./output/highh2/corr_N_highh2_mwef.csv")
-
 #sla training ef and validating mw using highh2 ef matrix
 re_h2_ef_inv <- readRDS(file = "./data/relmatrices/re_h2_ef_inv.rds")
 result_sla_highh2_efmw<- crossv(sort = sort,
@@ -342,8 +345,6 @@ result_sla_highh2_efmw<- crossv(sort = sort,
 )
 corr_S_highh2_efmw<- data.frame(result_sla_highh2_efmw$ac)
 #fwrite(corr_S_highh2_efmw, "./output/highh2/corr_S_highh2_efmw.csv")
-
-
 #sla training mw validating ef using highh2 mw
 re_h2_mw_inv <- readRDS(file = "./data/relmatrices/re_h2_mw_inv.rds")
 result_sla_highh2_mwef<- crossv(sort = sort,
