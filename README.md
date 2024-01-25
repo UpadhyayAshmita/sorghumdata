@@ -1,17 +1,17 @@
-## sorghumdata
+## General
 
-1. Load `vcftools` and `plink`:
-```
-module load vcftools/0.1.15 plink/5.2 cmake/3.5.2
-```
+This repository contains all the scripts and data used for the sorghum project.
 
-2.to decompress the vcf file gz format 
-```
-gzip -d filename 
+## Content of Repository
 
-```
-3.move in terminal
-```
-mv from 1st to location final 2nd location
-```
-4.
+-   Raw data used in the study from WEST sorghum diversity pannel
+
+-   Relationship matrices created for different model
+
+-   All output in a folder
+
+-   R-script for the analysis for stage-1 and stage-2
+
+-   figures are created through pre-processing script
+
+-   Figures are stored in figures folder
