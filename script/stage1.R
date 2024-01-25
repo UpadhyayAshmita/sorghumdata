@@ -723,7 +723,6 @@ bluesjoint_sla= data.frame(name2 = bluesjoint_sla$predictions$pvals$name2,
                          predicted.value = round(bluesjoint_sla$predictions$pvals$predicted.value, 3),
                          W = ifelse(not_missing, w, NA))
 fwrite(bluesjoint_sla,"./output/traitsoutput/bluesjoint_sla.csv", row.names = F)
-
 # ---------------------N-joint model fitting for blues---------------------
 bluesjoint_narea <- asreml(
   fixed = narea ~ loc + set + loc:set + name2 + name2:loc,

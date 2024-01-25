@@ -1,16 +1,20 @@
+# ---------------------loading packages--------------------
 library(data.table)
 library(cvTools)
 library(ASRgenomics)
 library(asreml)
 library(dplyr)
 library(ggplot2)
+library(tidyverse)
 source("./script/aux_functions.R")
 #reading blues from first stage analysis for narea 
 selected_lines<- read.csv("./data/selected_lines.csv")
-bluesjoint_narea_correct<- fread("./output/traitsoutput/bluesjoint_narea_correct.csv",data.table = F) %>% 
+bluesjoint_narea_correct<- fread("./output/traitsoutput/bluesjoint_narea_correct.csv",
+                                 data.table = F) %>% 
   filter(bluesjoint_narea_correct$taxa %in% selected_lines$x) %>% 
   mutate(taxa = factor(taxa))%>% rename("narea"= predicted.value)
-bluesjoint_sla_correct<- fread("./output/traitsoutput/bluesjoint_sla_correct.csv" , data.table = F)%>%
+bluesjoint_sla_correct<- fread("./output/traitsoutput/bluesjoint_sla_correct.csv",
+                               data.table = F)%>%
   filter(bluesjoint_sla_correct$taxa %in% selected_lines$x) %>% 
   mutate(taxa = factor(taxa))%>% rename("sla"= predicted.value)
 slablues_mw_correct<- fread("./output/traitsoutput/slablues_mw_correct.csv", data.table = F)%>% 
@@ -25,11 +29,13 @@ slablues_ef_correct<- fread("./output/traitsoutput/slablues_ef_correct.csv", dat
 nareablues_ef_correct<- fread("./output/traitsoutput/nareablues_ef_correct.csv", data.table = F)%>% 
   filter(nareablues_ef_correct$taxa %in% selected_lines$x) %>% 
   mutate(taxa = factor(taxa)) %>% rename("narea"= predicted.value)
+
 # ---------------------fitting second stage model for narea trait and training
 # the model with joint loc blues i.e nitroblues and validating on same data ---------------------
 # ---------------------creating list with 5 fold and 20 reps----------------------
 GINV <- readRDS(file = "./data/relmatrices/GINV.rds")
-sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, reps = 20, seed = 1)
+sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, 
+                     reps = 20, seed = 123)
 # ---------------------narea-running cross validation for joint loc---------------------
 result_N <-
   crossv(
@@ -42,33 +48,31 @@ result_N <-
     scheme= "joint"
   )
 corr_N_joint<- data.frame(result_N$ac)
-#fwrite(corr_N_joint, "./output/GBLUP/ corr_N_joint.csv")
+fwrite(corr_N_joint, "./output/GBLUP/corr_N_joint.csv")
 # ---------------------SLA-running cross validation for joint loc---------------------
 result_S <- crossv(sort = sort,
-                  train = bluesjoint_sla_correct,
+                  train = na.omit(bluesjoint_sla_correct),
                   validation = bluesjoint_sla_correct, 
                   mytrait = "sla", 
                   GINV = GINV,
                   data = "GBLUP",
                   scheme= "joint")
 corr_S_joint<- data.frame(result_S$ac)
-# fwrite(corr_S_joint, "./output/GBLUP/ corr_S_joint.csv")
+fwrite(corr_S_joint, "./output/GBLUP/corr_S_joint.csv")
 # ---------------------SLA-running cross validation for ...---------------------
 #SLA- CV with ef as a train and mw validation
 result_sla_efmw<- crossv(sort = sort,
-                  train = slablues_ef_correct,
+                  train = na.omit(slablues_ef_correct),
                   validation = slablues_mw_correct, 
                   mytrait = "sla", 
                   GINV = GINV,
                   data = "GBLUP",
                   scheme = "efmw")
 corr_S_efmw<- data.frame(result_sla_efmw$ac)
-#fwrite(corr_S_efmw, "./output/GBLUP/ corr_S_efmw.csv")
-
-# ---------------------SLA-running cross validation for joint loc---------------------
-#narea training the model withef and validating on nareabluesmw--------------------
+fwrite(corr_S_efmw, "./output/GBLUP/corr_S_efmw.csv")
+#narea training the model with ef and validating on mw--------------------
 result_narea_efmw<- crossv(sort = sort,
-                         train = nareablues_ef_correct,
+                         train = na.omit(nareablues_ef_correct),
                          validation = nareablues_mw_correct, 
                          mytrait = "narea", 
                          GINV = GINV,
@@ -76,23 +80,22 @@ result_narea_efmw<- crossv(sort = sort,
                          scheme = "efmw"
                          )
 corr_N_efmw<- data.frame(result_narea_efmw$ac)
-#fwrite(corr_N_efmw, "./output/GBLUP/ corr_N_efmw.csv")
+fwrite(corr_N_efmw, "./output/GBLUP/corr_N_efmw.csv")
 
-boxplot(corr_N_efmw$result_narea_efmw.ac)
 #narea training the model with mw and validating on ef--------------------
 result_narea_mwef<- crossv(sort = sort,
-                           train = nareablues_mw_correct,
+                           train = na.omit(nareablues_mw_correct),
                            validation = nareablues_ef_correct, 
                            mytrait = "narea", 
                            GINV = GINV,
                            data = "GBLUP",
                            scheme = "mwef")
 corr_N_mwef<- data.frame(result_narea_mwef$ac)
-#fwrite(corr_N_mwef, "./output/GBLUP/ corr_N_mwef.csv")
+fwrite(corr_N_mwef, "./output/GBLUP/ corr_N_mwef.csv")
 
 #SLA training the model with mw and validating on ef--------------------
 result_sla_mwef<- crossv(sort = sort,
-                           train = slablues_mw_correct,
+                           train = na.omit(slablues_mw_correct),
                            validation = slablues_ef_correct, 
                            mytrait = "sla", 
                            GINV= GINV,
@@ -100,55 +103,53 @@ result_sla_mwef<- crossv(sort = sort,
                          scheme = "mwef")
 
 corr_S_mwef<- data.frame(result_sla_mwef$ac)
-#fwrite(corr_S_mwef, "./output/GBLUP/ corr_S_mwef.csv")
+fwrite(corr_S_mwef, "./output/GBLUP/corr_S_mwef.csv")
 
 #NIRS model
-sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, reps = 20, seed = 135)
 nirs_inv<- readRDS(file = "./data/relmatrices/nirs_inv.rds")
 # fitting model for narea using train nareajoint and val on nareajoint using NIRS matrix--------------------
-result_N_nirs <-
+result_N_nirs_joint <-
   crossv(
     sort = sort,
-    train = bluesjoint_narea_correct,
+    train = na.omit(bluesjoint_narea_correct),
     validation =  bluesjoint_narea_correct,
     mytrait = "narea",
     GINV = nirs_inv,
     data= "NIRS",
     scheme= "nirs_joint"
   )
-corr_N_joint<- data.frame(result_N_nirs$ac)
+corr_N_nirs_joint<- data.frame(result_N_nirs_joint$ac)
+fwrite(corr_N_nirs_joint, "./output/NIRS/corr_N_nirs_joint.csv")
 #joint sla nirs
-result_S_nirs <-
+result_S_nirs_joint <-
   crossv(
     sort = sort,
-    train = bluesjoint_sla_correct,
+    train = na.omit(bluesjoint_sla_correct),
     validation =  bluesjoint_sla_correct,
     mytrait = "sla",
     GINV = nirs_inv,
     data= "NIRS",
     scheme= "nirs_joint"
   )
-corr_S_nirs_joint<- data.frame(result_S_nirs$ac)
-#sla_NIRS_joint<- fread("./output/NIRS/sla_joint.csv")
+corr_S_nirs_joint<- data.frame(result_S_nirs_joint$ac)
+fwrite(corr_S_nirs_joint, "./output/NIRS/corr_S_nirs_joint.csv")
+
 #narea training ef validating mw using NIRS ef
-#re_nirs_ef<- read.csv('./data/relmatrices/re_nirs_ef.csv')
-# rownames(re_nirs_ef) <- colnames(re_nirs_ef)
-# Gb <- G.tuneup(G = as.matrix(re_nirs_ef), bend = TRUE, eig.tol = 1e-06)$Gb
-# nirs_inv_ef<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(nirs_inv_ef, file = "./data/relmatrices/nirs_inv_ef.rds")
 nirs_inv_ef<- readRDS(file = "./data/relmatrices/nirs_inv_ef.rds")
 result_narea_nirs_efmw<- crossv(sort = sort,
-                           train = nareablues_ef_correct,
+                           train = na.omit(nareablues_ef_correct),
                            validation = nareablues_mw_correct, 
                            mytrait = "narea", 
                            GINV = nirs_inv_ef,
                            data = "NIRS",
                            scheme = "nirs_efmw"
 )
+corr_N_nirs_efmw<- data.frame(result_narea_nirs_efmw$ac)
+fwrite(corr_N_nirs_efmw, "./output/NIRS/corr_N_nirs_efmw.csv")
 #narea training mw validating ef using NIRSmw
 nirs_inv_mw <- readRDS(file = "./data/relmatrices/nirs_inv_mw.rds")
 result_narea_nirs_mwef<- crossv(sort = sort,
-                                train = nareablues_mw_correct,
+                                train = na.omit(nareablues_mw_correct),
                                 validation = nareablues_ef_correct, 
                                 mytrait = "narea", 
                                 GINV = nirs_inv_mw,
@@ -156,36 +157,32 @@ result_narea_nirs_mwef<- crossv(sort = sort,
                                 scheme = "nirs_mwef"
 )
 corr_N_nirs_mwef<- data.frame(result_narea_nirs_mwef$ac)
-#fwrite(corr_N_nirs_mwef, "./output/NIRS/ corr_N_nirs_mwef.csv")
+fwrite(corr_N_nirs_mwef, "./output/NIRS/corr_N_nirs_mwef.csv")
 #sla training ef validating mw using nirs ef matrix
 result_sla_nirs_efmw<- crossv(sort = sort,
-                                train = slablues_ef_correct,
+                                train = na.omit(slablues_ef_correct),
                                 validation = slablues_mw_correct, 
                                 mytrait = "sla", 
                                 GINV = nirs_inv_ef,
                                 data = "NIRS",
                                 scheme = "nirs_efmw")
+corr_S_nirs_efmw<- data.frame(result_sla_nirs_efmw$ac)
+fwrite(corr_S_nirs_efmw, "./output/NIRS/corr_S_nirs_efmw.csv")
 #sla training mw validating ef using nirs mw matrix
 result_sla_nirs_mwef<- crossv(sort = sort,
-                              train = slablues_mw_correct,
+                              train = na.omit(slablues_mw_correct),
                               validation = slablues_ef_correct, 
                               mytrait = "sla", 
                               GINV = nirs_inv_mw,
                               data = "NIRS",
                               scheme = "nirs_mwef")
 corr_sla_nirs_mwef<- data.frame(result_sla_nirs_mwef$ac)
-#fwrite(corr_sla_nirs_mwef, "./output/NIRS/ corr_sla_nirs_mwef.csv")
+fwrite(corr_sla_nirs_mwef, "./output/NIRS/corr_sla_nirs_mwef.csv")
 
 #whole wave model
-# re_w_joint<- read.csv("./data/relmatrices/re_w_joint.csv")
-# rownames(re_w_joint) <- colnames(re_w_joint)
-# Gb <- G.tuneup(G = as.matrix(re_w_joint), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_w_joint_inv<- G.inverse(G = Gb , sparseform = T)
-#saveRDS(re_w_joint_inv, file = "./data/relmatrices/re_w_joint_inv.rds")
 re_w_joint_inv <- readRDS(file = "./data/relmatrices/re_w_joint_inv.rds")
-sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, reps = 20, seed = 129)
 # -----narea-running cross validation for joint loc using whole wave information---------------------
-result_N_wholewave<-
+result_N_wholewave_joint<-
   crossv(
     sort = sort,
     train = na.omit(bluesjoint_narea_correct),
@@ -195,29 +192,24 @@ result_N_wholewave<-
     data= "wholewave",
     scheme= "wholewave_joint"
   )
-corr_N_wholewave_joint<- data.frame(result_N_wholewave$ac)
-#fwrite(corr_N_wholewave_joint, "./output/wholewave/corr_N_wholewave_joint.csv")
+corr_N_wholewave_joint<- data.frame(result_N_wholewave_joint$ac)
+fwrite(corr_N_wholewave_joint, "./output/wholewave/corr_N_wholewave_joint.csv")
 
 # -----SLA-running cross validation for joint loc using whole wave info---------------------
-result_S_wholewave<- crossv(sort = sort,
-                  train = bluesjoint_sla_correct,
+result_S_wholewave_joint<- crossv(sort = sort,
+                  train = na.omit(bluesjoint_sla_correct),
                   validation = bluesjoint_sla_correct, 
                   mytrait = "sla", 
                   GINV = re_w_joint_inv,
                   data = "wholewave",
                   scheme= "wholewave_joint")
-corr_S_wholewave_joint<- data.frame(result_S_wholewave$ac)
-#fwrite(corr_S_wholewave_joint, "./output/wholewave/corr_S_wholewave_joint.csv")
+corr_S_wholewave_joint<- data.frame(result_S_wholewave_joint$ac)
+fwrite(corr_S_wholewave_joint, "./output/wholewave/corr_S_wholewave_joint.csv")
 
 #------narea training ef validating mw using whole wave ef
-# re_w_ef<- read.csv('./data/relmatrices/re_w_ef.csv')
-# rownames(re_w_ef) <- colnames(re_w_ef)
-# Gb <- G.tuneup(G = as.matrix(re_w_ef), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_w_ef_inv<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(re_w_ef_inv, file = "./data/relmatrices/re_w_ef_inv.rds")
 re_w_ef_inv <- readRDS(file = "./data/relmatrices/re_w_ef_inv.rds")
 result_narea_wholewave_efmw<- crossv(sort = sort,
-                                train = nareablues_ef_correct,
+                                train = na.omit(nareablues_ef_correct),
                                 validation = nareablues_mw_correct, 
                                 mytrait = "narea", 
                                 GINV = re_w_ef_inv,
@@ -225,16 +217,11 @@ result_narea_wholewave_efmw<- crossv(sort = sort,
                                 scheme = "wholewave_efmw"
 )
 corr_N_wholewave_efmw<- data.frame(result_narea_wholewave_efmw$ac)
-#fwrite(corr_N_wholewave_efmw, "./output/wholewave/corr_N_wholewave_efmw.csv")
+fwrite(corr_N_wholewave_efmw, "./output/wholewave/corr_N_wholewave_efmw.csv")
 #narea training mw validating ef using wholewave mw
-# re_w_mw<- read.csv('./data/relmatrices/re_w_MW.csv')
-# rownames(re_w_mw) <- colnames(re_w_mw)
-# Gb <- G.tuneup(G = as.matrix(re_w_mw), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_w_mw_inv<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(re_w_mw_inv, file = "./data/relmatrices/re_w_mw_inv.rds")
 re_w_mw_inv <- readRDS(file = "./data/relmatrices/re_w_mw_inv.rds")
 result_narea_wholewave_mwef<- crossv(sort = sort,
-                                     train = nareablues_mw_correct,
+                                     train = na.omit(nareablues_mw_correct),
                                      validation = nareablues_ef_correct, 
                                      mytrait = "narea", 
                                      GINV = re_w_mw_inv,
@@ -242,11 +229,11 @@ result_narea_wholewave_mwef<- crossv(sort = sort,
                                      scheme = "wholewave_mwef"
 )
 corr_N_wholewave_mwef<- data.frame(result_narea_wholewave_mwef$ac)
-#fwrite(corr_N_wholewave_mwef, "./output/wholewave/corr_N_wholewave_mwef.csv")
+fwrite(corr_N_wholewave_mwef, "./output/wholewave/corr_N_wholewave_mwef.csv")
 #sla training ef and validating mw using wholewave ef
 re_w_ef_inv <- readRDS(file = "./data/relmatrices/re_w_ef_inv.rds")
 result_sla_wholewave_efmw<- crossv(sort = sort,
-                                     train = slablues_ef_correct,
+                                     train = na.omit(slablues_ef_correct),
                                      validation = slablues_mw_correct, 
                                      mytrait = "sla", 
                                      GINV = re_w_ef_inv,
@@ -254,11 +241,11 @@ result_sla_wholewave_efmw<- crossv(sort = sort,
                                      scheme = "wholewave_efmw"
 )
 corr_S_wholewave_efmw<- data.frame(result_sla_wholewave_efmw$ac)
-#fwrite(corr_S_wholewave_efmw, "./output/wholewave/corr_S_wholewave_efmw.csv")
+fwrite(corr_S_wholewave_efmw, "./output/wholewave/corr_S_wholewave_efmw.csv")
 #sla training mw validating ef using wholewave mw
 re_w_mw_inv <- readRDS(file = "./data/relmatrices/re_w_mw_inv.rds")
 result_sla_wholewave_mwef<- crossv(sort = sort,
-                                     train = slablues_mw_correct,
+                                     train = na.omit(slablues_mw_correct),
                                      validation = slablues_ef_correct, 
                                      mytrait = "sla", 
                                      GINV = re_w_mw_inv,
@@ -266,16 +253,10 @@ result_sla_wholewave_mwef<- crossv(sort = sort,
                                      scheme = "wholewave_mwef"
 )
 corr_S_wholewave_mwef<- data.frame(result_sla_wholewave_mwef$ac)
-#fwrite(corr_S_wholewave_mwef, "./output/wholewave/corr_S_wholewave_mwef.csv")
+fwrite(corr_S_wholewave_mwef, "./output/wholewave/corr_S_wholewave_mwef.csv")
 
 #--highly heritable models using high heritable relationship matrix for jointloc
-# # re_h2_joint<- read.csv("./data/relmatrices/re_h2_joint.csv")
-# # rownames(re_h2_joint) <- colnames(re_h2_joint)
-# # Gb <- G.tuneup(G = as.matrix(re_h2_joint), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_h2_joint_inv<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(re_h2_joint_inv, file = "./data/relmatrices/re_h2_joint_inv.rds")
 re_h2_joint_inv <- readRDS(file = "./data/relmatrices/re_h2_joint_inv.rds")
-sort<- create_folds( individuals= bluesjoint_narea_correct$taxa, nfolds= 5, reps = 20, seed = 147)
 # -----narea-running cross validation for joint loc using highh2 matrix--------------------
 result_N_highh2_joint<-
   crossv(
@@ -288,26 +269,21 @@ result_N_highh2_joint<-
     scheme= "highh2_joint"
   )
 corr_N_highh2_joint<- data.frame(result_N_highh2_joint$ac)
-#fwrite(corr_N_highh2_joint, "./output/highh2/corr_N_highh2_joint.csv")
+fwrite(corr_N_highh2_joint, "./output/highh2/corr_N_highh2_joint.csv")
 # -----SLA-running cv for joint loc using highh2 matrix--------------------
 result_S_highh2_joint<- crossv(sort = sort,
-                            train = bluesjoint_sla_correct,
+                            train = na.omit(bluesjoint_sla_correct),
                             validation = bluesjoint_sla_correct, 
                             mytrait = "sla", 
                             GINV = re_h2_joint_inv,
                             data = "highh2",
                             scheme= "highh2_joint")
 corr_S_highh2_joint<- data.frame(result_S_highh2_joint$ac)
-#fwrite(corr_S_highh2_joint, "./output/highh2/corr_S_highh2_joint.csv")
+fwrite(corr_S_highh2_joint, "./output/highh2/corr_S_highh2_joint.csv")
 #------narea training ef validating mw using high h2 ef loc matrix
-# re_h2_ef<-read.csv("./data/relmatrices/re_h2_ef.csv")
-# rownames(re_h2_ef) <- colnames(re_h2_ef)
-# Gb <- G.tuneup(G = as.matrix(re_h2_ef), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_h2_ef_inv<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(re_h2_ef_inv, file = "./data/relmatrices/re_h2_ef_inv.rds")
 re_h2_ef_inv <- readRDS(file = "./data/relmatrices/re_h2_ef_inv.rds")
 result_narea_highh2_efmw<- crossv(sort = sort,
-                                     train = nareablues_ef_correct,
+                                     train = na.omit(nareablues_ef_correct),
                                      validation = nareablues_mw_correct, 
                                      mytrait = "narea", 
                                      GINV = re_h2_ef_inv,
@@ -315,28 +291,23 @@ result_narea_highh2_efmw<- crossv(sort = sort,
                                      scheme = "highh2_efmw"
 )
 corr_N_highh2_efmw<- data.frame(result_narea_highh2_efmw$ac)
-#fwrite(corr_N_highh2_efmw, "./output/highh2/corr_N_highh2_efmw.csv")
+fwrite(corr_N_highh2_efmw, "./output/highh2/corr_N_highh2_efmw.csv")
 #narea training mw validating ef using highh2 mw matrix
-# re_h2_mw<-read.csv("./data/relmatrices/re_h2_mw.csv")
-# rownames(re_h2_mw) <- colnames(re_h2_mw)
-# Gb <- G.tuneup(G = as.matrix(re_h2_mw), bend = TRUE, eig.tol = 1e-06)$Gb
-# re_h2_mw_inv<- G.inverse(G = Gb , sparseform = T)
-# saveRDS(re_h2_mw_inv, file = "./data/relmatrices/re_h2_mw_inv.rds")
 re_h2_mw_inv <- readRDS(file = "./data/relmatrices/re_h2_mw_inv.rds")
-result_narea_h2_mwef<- crossv(sort = sort,
-                                     train = nareablues_mw_correct,
+result_narea_highh2_mwef<- crossv(sort = sort,
+                                     train = na.omit(nareablues_mw_correct),
                                      validation = nareablues_ef_correct, 
                                      mytrait = "narea", 
                                      GINV = re_h2_mw_inv,
                                      data = "highh2",
                                      scheme = "highh2_mwef"
 )
-corr_N_highh2_mwef<- data.frame(result_narea_h2_mwef$ac)
-#fwrite(corr_N_highh2_mwef, "./output/highh2/corr_N_highh2_mwef.csv")
+corr_N_highh2_mwef<- data.frame(result_narea_highh2_mwef$ac)
+fwrite(corr_N_highh2_mwef, "./output/highh2/corr_N_highh2_mwef.csv")
 #sla training ef and validating mw using highh2 ef matrix
 re_h2_ef_inv <- readRDS(file = "./data/relmatrices/re_h2_ef_inv.rds")
 result_sla_highh2_efmw<- crossv(sort = sort,
-                                   train = slablues_ef_correct,
+                                   train = na.omit(slablues_ef_correct),
                                    validation = slablues_mw_correct, 
                                    mytrait = "sla", 
                                    GINV = re_h2_ef_inv,
@@ -344,11 +315,11 @@ result_sla_highh2_efmw<- crossv(sort = sort,
                                    scheme = "highh2_efmw"
 )
 corr_S_highh2_efmw<- data.frame(result_sla_highh2_efmw$ac)
-#fwrite(corr_S_highh2_efmw, "./output/highh2/corr_S_highh2_efmw.csv")
+fwrite(corr_S_highh2_efmw, "./output/highh2/corr_S_highh2_efmw.csv")
 #sla training mw validating ef using highh2 mw
 re_h2_mw_inv <- readRDS(file = "./data/relmatrices/re_h2_mw_inv.rds")
 result_sla_highh2_mwef<- crossv(sort = sort,
-                                   train = slablues_mw_correct,
+                                   train = na.omit(slablues_mw_correct),
                                    validation = slablues_ef_correct, 
                                    mytrait = "sla", 
                                    GINV = re_h2_mw_inv,
@@ -356,7 +327,1491 @@ result_sla_highh2_mwef<- crossv(sort = sort,
                                    scheme = "highh2_mwef"
 )
 corr_S_highh2_mwef<- data.frame(result_sla_highh2_mwef$ac)
-#fwrite(corr_S_highh2_mwef, "./output/highh2/corr_S_highh2_mwef.csv")
+fwrite(corr_S_highh2_mwef, "./output/highh2/corr_S_highh2_mwef.csv")
+#Gh2 model
+# --cv for narea joint location using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/10%/Gh2inv_joint.rds")
+result_N_Gh2_j<- crossv(sort = sort,
+                                train = na.omit(bluesjoint_narea_correct),
+                                validation = bluesjoint_narea_correct, 
+                                mytrait = "narea", 
+                                GINV = Gh2inv_joint,
+                                data = "Gh2_joint_narea",
+                                scheme = "Gh2_10%_joint"
+)
+corrN_Gh2_10j<- data.frame(Gh2_10 = rep(NA,20))
+corrN_Gh2_10j$Gh2_10 <- result_N_Gh2_j$ac
+fwrite(corrN_Gh2_10j, "./output/Gh2_joint_narea/corrN_Gh2_10j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/10%/G10inv_joint.rds")
+result_N_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G10inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_10%_joint"
+)
+corrN_G_10j<- data.frame(G_10 = rep(NA,20))
+corrN_G_10j$G_10 <- result_N_G10_j$ac
+fwrite(corrN_G_10j, "./output/Gh2_joint_narea/corrN_G_10j.csv")
+# ---------------------25%---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/25%/Gh2inv_joint.rds")
+result_N_Gh2_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = Gh2inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "Gh2_25%_joint"
+)
+corrN_Gh2_25j<- data.frame(Gh2_25 = rep(NA,20))
+corrN_Gh2_25j$Gh2_25 <- result_N_Gh2_j$ac
+fwrite(corrN_Gh2_25j, "./output/Gh2_joint_narea/corrN_Gh2_25j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/25%/G25inv_joint.rds")
+result_N_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G25inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_25%_joint"
+)
+corrN_G_25j<- data.frame(G_25 = rep(NA,20))
+corrN_G_25j$G_25 <- result_N_G25_j$ac
+fwrite(corrN_G_25j, "./output/Gh2_joint_narea/corrN_G_25j.csv")
+
+# ---------------------50%---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/50%/Gh2inv_joint.rds")
+result_N_Gh2_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = Gh2inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "Gh2_50%_joint"
+)
+corrN_Gh2_50j<- data.frame(Gh2_50 = rep(NA,20))
+corrN_Gh2_50j$Gh2_50 <- result_N_Gh2_j$ac
+fwrite(corrN_Gh2_50j, "./output/Gh2_joint_narea/corrN_Gh2_50j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/50%/G50inv_joint.rds")
+result_N_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G50inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_50%_joint"
+)
+corrN_G_50j<- data.frame(G_50 = rep(NA,20))
+corrN_G_50j$G_50 <- result_N_G50_j$ac
+fwrite(corrN_G_50j, "./output/Gh2_joint_narea/corrN_G_50j.csv")
+
+# -------cv for sla joint location using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/10%/Gh2inv_joint.rds")
+result_S_Gh2_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gh2inv_joint,
+                        data = "Gh2_joint_sla",
+                        scheme = "Gh2_10%_joint"
+)
+corrS_Gh2_10j<- data.frame(Gh2_10 = rep(NA,20))
+corrS_Gh2_10j$Gh2_10 <- result_S_Gh2_j$ac
+fwrite(corrS_Gh2_10j, "./output/Gh2_joint_sla/corrS_Gh2_10j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/10%/G10inv_joint.rds")
+result_S_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G10inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_10%_joint"
+)
+corrS_G_10j<- data.frame(G_10 = rep(NA,20))
+corrS_G_10j$G_10 <- result_S_G10_j$ac
+fwrite(corrS_G_10j, "./output/Gh2_joint_sla/corrS_G_10j.csv")
+# ---------------------25%---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/25%/Gh2inv_joint.rds")
+result_S_Gh2_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gh2inv_joint,
+                        data = "Gh2_joint_sla",
+                        scheme = "Gh2_25%_joint"
+)
+corrS_Gh2_25j<- data.frame(Gh2_25 = rep(NA,20))
+corrS_Gh2_25j$Gh2_25 <- result_S_Gh2_j$ac
+fwrite(corrS_Gh2_25j, "./output/Gh2_joint_sla/corrS_Gh2_25j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/25%/G25inv_joint.rds")
+result_S_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G25inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_25%_joint"
+)
+corrS_G_25j<- data.frame(G_25 = rep(NA,20))
+corrS_G_25j$G_25 <- result_S_G25_j$ac
+fwrite(corrS_G_25j, "./output/Gh2_joint_sla/corrS_G_25j.csv")
+
+# ---------------------50%---------------------
+Gh2inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/50%/Gh2inv_joint.rds")
+result_S_Gh2_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gh2inv_joint,
+                        data = "Gh2_joint_sla",
+                        scheme = "Gh2_50%_joint"
+)
+corrS_Gh2_50j<- data.frame(Gh2_50 = rep(NA,20))
+corrS_Gh2_50j$Gh2_50 <- result_S_Gh2_j$ac
+fwrite(corrS_Gh2_50j, "./output/Gh2_joint_sla/corrS_Gh2_50j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/Gh2/joint/50%/G50inv_joint.rds")
+result_S_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G50inv_joint,
+                        data = "Gh2_joint_narea",
+                        scheme = "G_50%_joint"
+)
+corrS_G_50j<- data.frame(G_50 = rep(NA,20))
+corrS_G_50j$G_50 <- result_S_G50_j$ac
+fwrite(corrS_G_50j, "./output/Gh2_joint_sla/corrS_G_50j.csv")
 
 
+# ----cv for narea train ef val on mw using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/10%/Gh2inv_ef.rds")
+result_N_Gh2_efmw<- crossv(sort = sort,
+                        train = na.omit(nareablues_ef_correct),
+                        validation = nareablues_mw_correct, 
+                        mytrait = "narea", 
+                        GINV = Gh2inv_ef,
+                        data = "Gh2_efmw_narea",
+                        scheme = "Gh2_10%_efmw"
+)
+corrN_Gh2_10efmw<- data.frame(Gh2_10 = rep(NA,20))
+corrN_Gh2_10efmw$Gh2_10 <- result_N_Gh2_efmw$ac
+fwrite(corrN_Gh2_10efmw, "./output/Gh2_efmw_narea/corrN_Gh2_10efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/10%/G10inv_ef.rds")
+result_N_G10_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G10inv_ef,
+                           data = "Gh2_efmw_narea",
+                           scheme = "G_10%_efmw"
+)
+corrN_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrN_G_10efmw$G_10 <- result_N_G10_efmw$ac
+fwrite(corrN_G_10efmw, "./output/Gh2_efmw_narea/corrN_G_10efmw.csv")
+
+# ---------------------25%---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/25%/Gh2inv_ef.rds")
+result_N_Gh2_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = Gh2inv_ef,
+                           data = "Gh2_efmw_narea",
+                           scheme = "Gh2_25%_efmw"
+)
+corrN_Gh2_25efmw<- data.frame(Gh2_25 = rep(NA,20))
+corrN_Gh2_25efmw$Gh2_25 <- result_N_Gh2_efmw$ac
+fwrite(corrN_Gh2_25efmw, "./output/Gh2_efmw_narea/corrN_Gh2_25efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+
+G25inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/25%/G25inv_ef.rds")
+result_N_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_ef,
+                           data = "Gh2_efmw_narea",
+                           scheme = "G_25%_efmw"
+)
+corrN_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrN_G_25efmw$G_25 <- result_N_G25_efmw$ac
+fwrite(corrN_G_25efmw, "./output/Gh2_efmw_narea/corrN_G_25efmw.csv")
+# ---------------------50%---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/50%/Gh2inv_ef.rds")
+result_N_Gh2_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = Gh2inv_ef,
+                           data = "Gh2_efmw_narea",
+                           scheme = "Gh2_50%_efmw"
+)
+corrN_Gh2_50efmw<- data.frame(Gh2_50 = rep(NA,20))
+corrN_Gh2_50efmw$Gh2_50 <- result_N_Gh2_efmw$ac
+fwrite(corrN_Gh2_50efmw, "./output/Gh2_efmw_narea/corrN_Gh2_50efmw.csv")     
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/50%/G50inv_ef.rds")
+result_N_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_ef,
+                           data = "Gh2_efmw_narea",
+                           scheme = "G_50%_efmw"
+)
+corrN_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrN_G_50efmw$G_50 <- result_N_G50_efmw$ac
+fwrite(corrN_G_50efmw, "./output/Gh2_efmw_narea/corrN_G_50efmw.csv")
+
+
+# ----cv for narea train mw val on ef using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/10%/Gh2inv_mw.rds")
+result_N_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "Gh2_10%_mwef"
+)
+corrN_Gh2_10mwef<- data.frame(Gh2_10 = rep(NA,20))
+corrN_Gh2_10mwef$Gh2_10 <- result_N_Gh2_mwef$ac
+fwrite(corrN_Gh2_10mwef, "./output/Gh2_mwef_narea/corrN_Gh2_10mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/10%/G10inv_mw.rds")
+result_N_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G10inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "G_10%_mwef"
+)
+corrN_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrN_G_10mwef$G_10 <- result_N_G10_mwef$ac
+fwrite(corrN_G_10mwef, "./output/Gh2_mwef_narea/corrN_G_10mwef.csv")
+
+# ---------------------25%---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/25%/Gh2inv_mw.rds")
+result_N_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "Gh2_25%_mwef"
+)
+corrN_Gh2_25mwef<- data.frame(Gh2_25 = rep(NA,20))
+corrN_Gh2_25mwef$Gh2_25 <- result_N_Gh2_mwef$ac
+fwrite(corrN_Gh2_25mwef, "./output/Gh2_mwef_narea/corrN_Gh2_25mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+
+G25inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/25%/G25inv_mw.rds")
+result_N_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "G_25%_mwef"
+)
+corrN_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrN_G_25mwef$G_25 <- result_N_G25_mwef$ac
+fwrite(corrN_G_25mwef, "./output/Gh2_mwef_narea/corrN_G_25mwef.csv")
+# ---------------------50%---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/50%/Gh2inv_mw.rds")
+result_N_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "Gh2_50%_mwef"
+)
+corrN_Gh2_50mwef<- data.frame(Gh2_50 = rep(NA,20))
+corrN_Gh2_50mwef$Gh2_50 <- result_N_Gh2_mwef$ac
+fwrite(corrN_Gh2_50mwef, "./output/Gh2_mwef_narea/corrN_Gh2_50mwef.csv")       
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/50%/G50inv_mw.rds")
+result_N_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_mw,
+                           data = "Gh2_mwef_narea",
+                           scheme = "G_50%_mwef"
+)
+corrN_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrN_G_50mwef$G_50 <- result_N_G50_mwef$ac
+fwrite(corrN_G_50mwef, "./output/Gh2_mwef_narea/corrN_G_50mwef.csv")
+# ---------------------cv for sla train mw val on ef using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/10%/Gh2inv_mw.rds")
+result_S_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "Gh2_10%_mwef"
+)
+corrS_Gh2_10mwef<- data.frame(Gh2_10 = rep(NA,20))
+corrS_Gh2_10mwef$Gh2_10 <- result_S_Gh2_mwef$ac
+fwrite(corrS_Gh2_10mwef, "./output/Gh2_mwef_sla/corrS_Gh2_10mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/10%/G10inv_mw.rds")
+result_S_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "G_10%_mwef"
+)
+corrS_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrS_G_10mwef$G_10 <- result_N_G10_mwef$ac
+fwrite(corrS_G_10mwef, "./output/Gh2_mwef_sla/corrS_G_10mwef.csv")
+
+# ---------------------25%---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/25%/Gh2inv_mw.rds")
+result_S_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "Gh2_25%_mwef"
+)
+corrS_Gh2_25mwef<- data.frame(Gh2_25 = rep(NA,20))
+corrS_Gh2_25mwef$Gh2_25 <- result_S_Gh2_mwef$ac
+fwrite(corrS_Gh2_25mwef, "./output/Gh2_mwef_sla/corrS_Gh2_25mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/25%/G25inv_mw.rds")
+result_S_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "G_25%_mwef"
+)
+corrS_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrS_G_25mwef$G_25 <- result_N_G25_mwef$ac
+fwrite(corrS_G_25mwef, "./output/Gh2_mwef_sla/corrS_G_25mwef.csv")
+# ---------------------50%---------------------
+Gh2inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/50%/Gh2inv_mw.rds")
+result_S_Gh2_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "Gh2_50%_mwef"
+)
+corrS_Gh2_50mwef<- data.frame(Gh2_50 = rep(NA,20))
+corrS_Gh2_50mwef$Gh2_50 <- result_S_Gh2_mwef$ac
+fwrite(corrS_Gh2_50mwef, "./output/Gh2_mwef_sla/corrS_Gh2_50mwef.csv")       
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/50%/G50inv_mw.rds")
+result_S_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_mw,
+                           data = "Gh2_mwef_sla",
+                           scheme = "G_50%_mwef"
+)
+corrS_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrS_G_50mwef$G_50 <- result_N_G50_mwef$ac
+fwrite(corrS_G_50mwef, "./output/Gh2_mwef_sla/corrS_G_50mwef.csv")
+
+# -----cv for narea train ef val on mw using Gh2 matrix with 10%,25%, 50% scheme ---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/10%/Gh2inv_ef.rds")
+result_S_Gh2_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "Gh2_10%_efmw"
+)
+corrS_Gh2_10efmw<- data.frame(Gh2_10 = rep(NA,20))
+corrS_Gh2_10efmw$Gh2_10 <- result_S_Gh2_efmw$ac
+fwrite(corrS_Gh2_10efmw, "./output/Gh2_efmw_sla/corrS_Gh2_10efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/10%/G10inv_ef.rds")
+result_S_G10_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "G_10%_efmw"
+)
+corrS_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrS_G_10efmw$G_10 <- result_S_G10_efmw$ac
+fwrite(corrS_G_10efmw, "./output/Gh2_efmw_sla/corrS_G_10efmw.csv")
+
+# ---------------------25%---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/25%/Gh2inv_ef.rds")
+result_S_Gh2_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "Gh2_25%_efmw"
+)
+corrS_Gh2_25efmw<- data.frame(Gh2_25 = rep(NA,20))
+corrS_Gh2_25efmw$Gh2_25 <- result_S_Gh2_efmw$ac
+fwrite(corrS_Gh2_25efmw, "./output/Gh2_efmw_sla/corrS_Gh2_25efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/25%/G25inv_ef.rds")
+result_S_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "G_25%_efmw"
+)
+corrS_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrS_G_25efmw$G_25 <- result_S_G25_efmw$ac
+fwrite(corrS_G_25efmw, "./output/Gh2_efmw_sla/corrS_G_25efmw.csv")
+
+# ---------------------50%---------------------
+Gh2inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/50%/Gh2inv_ef.rds")
+result_S_Gh2_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gh2inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "Gh2_50%_efmw"
+)
+corrS_Gh2_50efmw<- data.frame(Gh2_50 = rep(NA,20))
+corrS_Gh2_50efmw$Gh2_50 <- result_S_Gh2_efmw$ac
+fwrite(corrS_Gh2_50efmw, "./output/Gh2_efmw_sla/corrS_Gh2_50efmw.csv")     
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/Gh2/ef/50%/G50inv_ef.rds")
+result_S_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_ef,
+                           data = "Gh2_efmw_sla",
+                           scheme = "G_50%_efmw"
+)
+corrS_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrS_G_50efmw$G_50 <- result_S_G50_efmw$ac
+fwrite(corrS_G_50efmw, "./output/Gh2_efmw_sla/corrS_G_50efmw.csv")
+
+#Gnirs model
+# ---------------------cv for narea joint location using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/10%/Gnirsinv_joint.rds")
+result_N_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "Gnirs_10%_joint"
+)
+corrN_Gnirs_10j<- data.frame(Gnirs_10 = rep(NA,20))
+corrN_Gnirs_10j$Gnirs_10 <- result_N_Gnirs_j$ac
+fwrite(corrN_Gnirs_10j, "./output/Gnirs_joint_narea/corrN_Gnirs_10j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/10%/G10inv_joint.rds")
+result_N_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G10inv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "G_10%_joint"
+)
+corrN_G_10j<- data.frame(G_10 = rep(NA,20))
+corrN_G_10j$G_10 <- result_N_G10_j$ac
+fwrite(corrN_G_10j, "./output/Gnirs_joint_narea/corrN_G_10j.csv")
+
+# ---------------------25%---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/25%/Gnirsinv_joint.rds")
+result_N_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "Gnirs_25%_joint"
+)
+corrN_Gnirs_25j<- data.frame(Gnirs_25 = rep(NA,20))
+corrN_Gnirs_25j$Gnirs_25 <- result_N_Gnirs_j$ac
+fwrite(corrN_Gnirs_25j, "./output/Gnirs_joint_narea/corrN_Gnirs_25j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/25%/G25inv_joint.rds")
+result_N_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G25inv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "G_25%_joint"
+)
+corrN_G_25j<- data.frame(G_25 = rep(NA,20))
+corrN_G_25j$G_25 <- result_N_G25_j$ac
+fwrite(corrN_G_25j, "./output/Gnirs_joint_narea/corrN_G_25j.csv")
+
+# ---------------------50%---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/50%/Gnirsinv_joint.rds")
+result_N_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "Gnirs_50%_joint"
+)
+corrN_Gnirs_50j<- data.frame(Gnirs_50 = rep(NA,20))
+corrN_Gnirs_50j$Gnirs_50 <- result_N_Gnirs_j$ac
+fwrite(corrN_Gnirs_50j, "./output/Gnirs_joint_narea/corrN_Gnirs_50j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/50%/G50inv_joint.rds")
+result_N_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G50inv_joint,
+                        data = "Gnirs_joint_narea",
+                        scheme = "G_50%_joint"
+)
+corrN_G_50j<- data.frame(G_50 = rep(NA,20))
+corrN_G_50j$G_50 <- result_N_G50_j$ac
+fwrite(corrN_G_50j, "./output/Gnirs_joint_narea/corrN_G_50j.csv")
+
+# ---------------------cv for sla joint location using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/10%/Gnirsinv_joint.rds")
+result_S_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "Gnirs_10%_joint"
+)
+corrS_Gnirs_10j<- data.frame(Gnirs_10 = rep(NA,20))
+corrS_Gnirs_10j$Gnirs_10 <- result_S_Gnirs_j$ac
+fwrite(corrS_Gnirs_10j, "./output/Gnirs_joint_sla/corrS_Gnirs_10j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/10%/G10inv_joint.rds")
+result_S_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G10inv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "G_10%_joint"
+)
+corrS_G_10j<- data.frame(G_10 = rep(NA,20))
+corrS_G_10j$G_10 <- result_S_G10_j$ac
+fwrite(corrS_G_10j, "./output/Gnirs_joint_sla/corrS_G_10j.csv")
+
+
+# ---------------------25%---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/25%/Gnirsinv_joint.rds")
+result_S_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "Gnirs_25%_joint"
+)
+corrS_Gnirs_25j<- data.frame(Gnirs_25 = rep(NA,20))
+corrS_Gnirs_25j$Gnirs_25 <- result_S_Gnirs_j$ac
+fwrite(corrS_Gnirs_25j, "./output/Gnirs_joint_sla/corrS_Gnirs_25j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/25%/G25inv_joint.rds")
+result_S_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G25inv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "G_25%_joint"
+)
+corrS_G_25j<- data.frame(G_25 = rep(NA,20))
+corrS_G_25j$G_25 <- result_S_G25_j$ac
+fwrite(corrS_G_25j, "./output/Gnirs_joint_sla/corrS_G_25j.csv")
+
+
+# ---------------------50%---------------------
+Gnirsinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/50%/Gnirsinv_joint.rds")
+result_S_Gnirs_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = Gnirsinv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "Gnirs_50%_joint"
+)
+corrS_Gnirs_50j<- data.frame(Gnirs_50 = rep(NA,20))
+corrS_Gnirs_50j$Gnirs_50 <- result_S_Gnirs_j$ac
+fwrite(corrS_Gnirs_50j, "./output/Gnirs_joint_sla/corrS_Gnirs_50j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/50%/G50inv_joint.rds")
+result_S_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G50inv_joint,
+                        data = "Gnirs_joint_sla",
+                        scheme = "G_50%_joint"
+)
+corrS_G_50j<- data.frame(G_50 = rep(NA,20))
+corrS_G_50j$G_50 <- result_S_G50_j$ac
+fwrite(corrS_G_50j, "./output/Gnirs_joint_sla/corrS_G_50j.csv")
+
+
+# ---------------------cv for narea train ef val on mw using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/10%/Gnirsinv_ef.rds")
+result_N_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "Gnirs_10%_efmw"
+)
+corrN_Gnirs_10efmw<- data.frame(Gnirs_10 = rep(NA,20))
+corrN_Gnirs_10efmw$Gnirs_10 <- result_N_Gnirs_efmw$ac
+fwrite(corrN_Gnirs_10efmw, "./output/Gnirs_efmw_narea/corrN_Gnirs_10efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/10%/G10inv_ef.rds")
+result_N_G10_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G10inv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "G_10%_efmw"
+)
+corrN_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrN_G_10efmw$G_10 <- result_N_G10_efmw$ac
+fwrite(corrN_G_10efmw, "./output/Gnirs_efmw_narea/corrN_G_10efmw.csv")
+# ---------------------25%---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/25%/Gnirsinv_ef.rds")
+result_N_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "Gnirs_25%_efmw"
+)
+corrN_Gnirs_25efmw<- data.frame(Gnirs_25 = rep(NA,20))
+corrN_Gnirs_25efmw$Gnirs_25 <- result_N_Gnirs_efmw$ac
+fwrite(corrN_Gnirs_25efmw, "./output/Gnirs_efmw_narea/corrN_Gnirs_25efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/25%/G25inv_ef.rds")
+result_N_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "G_25%_efmw"
+)
+corrN_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrN_G_25efmw$G_25 <- result_N_G25_efmw$ac
+fwrite(corrN_G_25efmw, "./output/Gnirs_efmw_narea/corrN_G_25efmw.csv")
+# ---------------------50%---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/50%/Gnirsinv_ef.rds")
+result_N_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "Gnirs_50%_efmw"
+)
+corrN_Gnirs_50efmw<- data.frame(Gnirs_50 = rep(NA,20))
+corrN_Gnirs_50efmw$Gnirs_50 <- result_N_Gnirs_efmw$ac
+fwrite(corrN_Gnirs_50efmw, "./output/Gnirs_efmw_narea/corrN_Gnirs_50efmw.csv")     
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/50%/G50inv_ef.rds")
+result_N_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_ef,
+                           data = "Gnirs_efmw_narea",
+                           scheme = "G_50%_efmw"
+)
+corrN_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrN_G_50efmw$G_50 <- result_N_G50_efmw$ac
+fwrite(corrN_G_50efmw, "./output/Gnirs_efmw_narea/corrN_G_50efmw.csv")
+
+
+# ---------------------cv for narea train mw val on ef using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/10%/Gnirsinv_mw.rds")
+result_N_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "Gnirs_10%_mwef"
+)
+corrN_Gnirs_10mwef<- data.frame(Gnirs_10 = rep(NA,20))
+corrN_Gnirs_10mwef$Gnirs_10 <- result_N_Gnirs_mwef$ac
+fwrite(corrN_Gnirs_10mwef, "./output/Gnirs_mwef_narea/corrN_Gnirs_10mwef.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/10%/G10inv_mw.rds")
+result_N_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G10inv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "G_10%_mwef"
+)
+corrN_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrN_G_10mwef$G_10 <- result_N_G10_mwef$ac
+fwrite(corrN_G_10mwef, "./output/Gnirs_mwef_narea/corrN_G_10mwef.csv")
+
+# ---------------------25%---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/25%/Gnirsinv_mw.rds")
+result_N_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "Gnirs_25%_mwef"
+)
+corrN_Gnirs_25mwef<- data.frame(Gnirs_25 = rep(NA,20))
+corrN_Gnirs_25mwef$Gnirs_25 <- result_N_Gnirs_mwef$ac
+fwrite(corrN_Gnirs_25mwef, "./output/Gnirs_mwef_narea/corrN_Gnirs_25mwef.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/25%/G25inv_mw.rds")
+result_N_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "G_25%_mwef"
+)
+corrN_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrN_G_25mwef$G_25 <- result_N_G25_mwef$ac
+fwrite(corrN_G_25mwef, "./output/Gnirs_mwef_narea/corrN_G_25mwef.csv")
+
+# ---------------------50%---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/50%/Gnirsinv_mw.rds")
+result_N_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "Gnirs_50%_mwef"
+)
+corrN_Gnirs_50mwef<- data.frame(Gnirs_50 = rep(NA,20))
+corrN_Gnirs_50mwef$Gnirs_50 <- result_N_Gnirs_mwef$ac
+fwrite(corrN_Gnirs_50mwef, "./output/Gnirs_mwef_narea/corrN_Gnirs_50mwef.csv") 
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/50%/G50inv_mw.rds")
+result_N_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_mw,
+                           data = "Gnirs_mwef_narea",
+                           scheme = "G_50%_mwef"
+)
+corrN_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrN_G_50mwef$G_50 <- result_N_G50_mwef$ac
+fwrite(corrN_G_50mwef, "./output/Gnirs_mwef_narea/corrN_G_50mwef.csv")
+
+# ---------------------cv for sla train mw val on ef using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gh2/mw/10%/Gh2inv_mw.rds")
+result_S_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "Gnirs_10%_mwef"
+)
+corrS_Gnirs_10mwef<- data.frame(Gnirs_10 = rep(NA,20))
+corrS_Gnirs_10mwef$Gnirs_10 <- result_S_Gnirs_mwef$ac
+fwrite(corrS_Gnirs_10mwef, "./output/Gnirs_mwef_sla/corrS_Gnirs_10mwef.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/10%/G10inv_mw.rds")
+result_S_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "G_10%_mwef"
+)
+corrS_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrS_G_10mwef$G_10 <- result_S_G10_mwef$ac
+fwrite(corrS_G_10mwef, "./output/Gnirs_mwef_sla/corrS_G_10mwef.csv")
+
+
+# ---------------------25%---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/25%/Gnirsinv_mw.rds")
+result_S_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "Gnirs_25%_mwef"
+)
+corrS_Gnirs_25mwef<- data.frame(Gnirs_25 = rep(NA,20))
+corrS_Gnirs_25mwef$Gnirs_25 <- result_S_Gnirs_mwef$ac
+fwrite(corrS_Gnirs_25mwef, "./output/Gnirs_mwef_sla/corrS_Gnirs_25mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/25%/G25inv_mw.rds")
+result_S_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "G_25%_mwef"
+)
+corrS_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrS_G_25mwef$G_25 <- result_S_G25_mwef$ac
+fwrite(corrS_G_25mwef, "./output/Gnirs_mwef_sla/corrS_G_25mwef.csv")
+# ---------------------50%---------------------
+Gnirsinv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/50%/Gnirsinv_mw.rds")
+result_S_Gnirs_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "Gnirs_50%_mwef"
+)
+corrS_Gnirs_50mwef<- data.frame(Gnirs_50 = rep(NA,20))
+corrS_Gnirs_50mwef$Gnirs_50 <- result_S_Gnirs_mwef$ac
+fwrite(corrS_Gnirs_50mwef, "./output/Gnirs_mwef_sla/corrS_Gnirs_50mwef.csv")    
+
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/Gnirs/mw/50%/G50inv_mw.rds")
+result_S_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_mw,
+                           data = "Gnirs_mwef_sla",
+                           scheme = "G_50%_mwef"
+)
+corrS_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrS_G_50mwef$G_50 <- result_S_G50_mwef$ac
+fwrite(corrS_G_50mwef, "./output/Gnirs_mwef_sla/corrS_G_50mwef.csv")
+
+# ---------------------cv for sla train ef val on mw using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/10%/Gnirsinv_ef.rds")
+result_S_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "Gnirs_10%_efmw"
+)
+corrS_Gnirs_10efmw<- data.frame(Gnirs_10 = rep(NA,20))
+corrS_Gnirs_10efmw$Gnirs_10 <- result_S_Gnirs_efmw$ac
+fwrite(corrS_Gnirs_10efmw, "./output/Gnirs_efmw_sla/corrS_Gnirs_10efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/10%/G10inv_ef.rds")
+result_S_G10_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "G_10%_efmw"
+)
+corrS_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrS_G_10efmw$G_10 <- result_S_G10_efmw$ac
+fwrite(corrS_G_10efmw, "./output/Gnirs_efmw_sla/corrS_G_10efmw.csv")
+
+# ---------------------25%---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/25%/Gnirsinv_ef.rds")
+result_S_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "Gnirs_25%_efmw"
+)
+corrS_Gnirs_25efmw<- data.frame(Gnirs_25 = rep(NA,20))
+corrS_Gnirs_25efmw$Gnirs_25 <- result_S_Gnirs_efmw$ac
+fwrite(corrS_Gnirs_25efmw, "./output/Gnirs_efmw_sla/corrS_Gnirs_25efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/25%/G25inv_ef.rds")
+result_S_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "G_25%_efmw"
+)
+corrS_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrS_G_25efmw$G_25 <- result_S_G25_efmw$ac
+fwrite(corrS_G_25efmw, "./output/Gnirs_efmw_sla/corrS_G_25efmw.csv")
+# ---------------------50%---------------------
+Gnirsinv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/50%/Gnirsinv_ef.rds")
+result_S_Gnirs_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = Gnirsinv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "Gnirs_50%_efmw"
+)
+corrS_Gnirs_50efmw<- data.frame(Gnirs_50 = rep(NA,20))
+corrS_Gnirs_50efmw$Gnirs_50 <- result_S_Gnirs_efmw$ac
+fwrite(corrS_Gnirs_50efmw, "./output/Gnirs_efmw_sla/corrS_Gnirs_50efmw.csv")     
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/Gnirs/ef/50%/G50inv_ef.rds")
+result_S_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_ef,
+                           data = "Gnirs_efmw_sla",
+                           scheme = "G_50%_efmw"
+)
+corrS_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrS_G_50efmw$G_50 <- result_S_G50_efmw$ac
+fwrite(corrS_G_50efmw, "./output/Gnirs_efmw_sla/corrS_G_50efmw.csv")
+
+#GWW(Genomic Wholewave) model
+# ---------------------CV for narea joint location using Gnirs matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/10%/GWWinv_joint.rds")
+result_N_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_narea_correct),
+                          validation = bluesjoint_narea_correct, 
+                          mytrait = "narea", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_narea",
+                          scheme = "GWW_10%_joint"
+)
+corrN_GWW_10j<- data.frame(GWW_10 = rep(NA,20))
+corrN_GWW_10j$GWW_10 <- result_N_GWW_j$ac
+fwrite(corrN_GWW_10j, "./output/GWW_joint_narea/corrN_GWW_10j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/10%/G10inv_joint.rds")
+result_N_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G10inv_joint,
+                        data = "GWW_joint_narea",
+                        scheme = "G_10%_joint"
+)
+corrN_G_10j<- data.frame(G_10 = rep(NA,20))
+corrN_G_10j$G_10 <- result_N_G10_j$ac
+fwrite(corrN_G_10j, "./output/GWW_joint_narea/corrN_G_10j.csv")
+# ---------------------25%---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/25%/GWWinv_joint.rds")
+result_N_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_narea_correct),
+                          validation = bluesjoint_narea_correct, 
+                          mytrait = "narea", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_narea",
+                          scheme = "GWW_25%_joint"
+)
+corrN_GWW_25j<- data.frame(GWW_25 = rep(NA,20))
+corrN_GWW_25j$GWW_25 <- result_N_GWW_j$ac
+fwrite(corrN_GWW_25j, "./output/GWW_joint_narea/corrN_GWW_25j.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/25%/G25inv_joint.rds")
+result_N_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G25inv_joint,
+                        data = "GWW_joint_narea",
+                        scheme = "G_25%_joint"
+)
+corrN_G_25j<- data.frame(G_25 = rep(NA,20))
+corrN_G_25j$G_25 <- result_N_G25_j$ac
+fwrite(corrN_G_25j, "./output/GWW_joint_narea/corrN_G_25j.csv")
+# ---------------------50%---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/50%/GWWinv_joint.rds")
+result_N_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_narea_correct),
+                          validation = bluesjoint_narea_correct, 
+                          mytrait = "narea", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_narea",
+                          scheme = "GWW_50%_joint"
+)
+corrN_GWW_50j<- data.frame(GWW_50 = rep(NA,20))
+corrN_GWW_50j$GWW_50 <- result_N_GWW_j$ac
+fwrite(corrN_GWW_50j, "./output/GWW_joint_narea/corrN_GWW_50j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/50%/G50inv_joint.rds")
+result_N_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_narea_correct),
+                        validation = bluesjoint_narea_correct, 
+                        mytrait = "narea", 
+                        GINV = G50inv_joint,
+                        data = "GWW_joint_narea",
+                        scheme = "G_50%_joint"
+)
+corrN_G_50j<- data.frame(G_50 = rep(NA,20))
+corrN_G_50j$G_50 <- result_N_G50_j$ac
+fwrite(corrN_G_50j, "./output/GWW_joint_narea/corrN_G_50j.csv")
+# ---------------------cv for sla joint location using GWW matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/10%/GWWinv_joint.rds")
+result_S_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_sla_correct),
+                          validation = bluesjoint_sla_correct, 
+                          mytrait = "sla", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_sla",
+                          scheme = "GWW_10%_joint"
+)
+corrS_GWW_10j<- data.frame(GWW_10 = rep(NA,20))
+corrS_GWW_10j$GWW_10 <- result_S_GWW_j$ac
+fwrite(corrS_GWW_10j, "./output/GWW_joint_sla/corrS_GWW_10j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/10%/G10inv_joint.rds")
+result_S_G10_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G10inv_joint,
+                        data = "GWW_joint_sla",
+                        scheme = "G_10%_joint"
+)
+corrS_G_10j<- data.frame(G_10 = rep(NA,20))
+corrS_G_10j$G_10 <- result_S_G10_j$ac
+fwrite(corrS_G_10j, "./output/GWW_joint_sla/corrS_G_10j.csv")
+# ---------------------25%---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/25%/GWWinv_joint.rds")
+result_S_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_sla_correct),
+                          validation = bluesjoint_sla_correct, 
+                          mytrait = "sla", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_sla",
+                          scheme = "GWW_25%_joint"
+)
+corrS_GWW_25j<- data.frame(GWW_25 = rep(NA,20))
+corrS_GWW_25j$GWW_25 <- result_S_GWW_j$ac
+fwrite(corrS_GWW_25j, "./output/GWW_joint_sla/corrS_GWW_25j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/25%/G25inv_joint.rds")
+result_S_G25_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G25inv_joint,
+                        data = "GWW_joint_sla",
+                        scheme = "G_25%_joint"
+)
+corrS_G_25j<- data.frame(G_25 = rep(NA,20))
+corrS_G_25j$G_25 <- result_S_G25_j$ac
+fwrite(corrS_G_25j, "./output/GWW_joint_sla/corrS_G_25j.csv")
+# ---------------------50%---------------------
+GWWinv_joint <- readRDS(file = "./data/relmatrices/Gnirs/joint/50%/Gnirsinv_joint.rds")
+result_S_GWW_j<- crossv(sort = sort,
+                          train = na.omit(bluesjoint_sla_correct),
+                          validation = bluesjoint_sla_correct, 
+                          mytrait = "sla", 
+                          GINV = GWWinv_joint,
+                          data = "GWW_joint_sla",
+                          scheme = "GWW_50%_joint"
+)
+corrS_GWW_50j<- data.frame(GWW_50 = rep(NA,20))
+corrS_GWW_50j$GWW_50 <- result_S_GWW_j$ac
+fwrite(corrS_GWW_50j, "./output/GWW_joint_sla/corrS_GWW_50j.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_joint <- readRDS(file = "./data/relmatrices/GWW/joint/50%/G50inv_joint.rds")
+result_S_G50_j<- crossv(sort = sort,
+                        train = na.omit(bluesjoint_sla_correct),
+                        validation = bluesjoint_sla_correct, 
+                        mytrait = "sla", 
+                        GINV = G50inv_joint,
+                        data = "GWW_joint_sla",
+                        scheme = "G_50%_joint"
+)
+corrS_G_50j<- data.frame(G_50 = rep(NA,20))
+corrS_G_50j$G_50 <- result_S_G50_j$ac
+fwrite(corrS_G_50j, "./output/GWW_joint_sla/corrS_G_50j.csv")
+
+# ----------cv for narea train ef val on mw using GWW matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/10%/GWWinv_ef.rds")
+result_N_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(nareablues_ef_correct),
+                             validation = nareablues_mw_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_narea",
+                             scheme = "GWW_10%_efmw"
+)
+corrN_GWW_10efmw<- data.frame(GWW_10 = rep(NA,20))
+corrN_GWW_10efmw$GWW_10 <- result_N_GWW_efmw$ac
+fwrite(corrN_GWW_10efmw, "./output/GWW_efmw_narea/corrN_GWW_10efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/10%/G10inv_ef.rds")
+result_N_G10_efmw<- crossv(sort = sort,
+                        train = na.omit(nareablues_ef_correct),
+                        validation = nareablues_mw_correct, 
+                        mytrait = "narea", 
+                        GINV = G10inv_ef,
+                        data = "GWW_efmw_narea",
+                        scheme = "G_10%_efmw"
+)
+corrN_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrN_G_10efmw$G_10 <- result_N_G10_efmw$ac
+fwrite(corrN_G_10efmw, "./output/GWW_efmw_narea/corrN_G_10efmw.csv")
+
+# ---------------------25%---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/25%/GWWinv_ef.rds")
+result_N_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(nareablues_ef_correct),
+                             validation = nareablues_mw_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_narea",
+                             scheme = "GWW_25%_efmw"
+)
+corrN_GWW_25efmw<- data.frame(GWW_25 = rep(NA,20))
+corrN_GWW_25efmw$GWW_25 <- result_N_GWW_efmw$ac
+fwrite(corrN_GWW_25efmw, "./output/GWW_efmw_narea/corrN_GWW_25efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/25%/G25inv_ef.rds")
+result_N_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_ef,
+                           data = "GWW_efmw_narea",
+                           scheme = "G_25%_efmw"
+)
+corrN_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrN_G_25efmw$G_25 <- result_N_G25_efmw$ac
+fwrite(corrN_G_25efmw, "./output/GWW_efmw_narea/corrN_G_25efmw.csv")
+
+# ---------------------50%---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/50%/GWWinv_ef.rds")
+result_N_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(nareablues_ef_correct),
+                             validation = nareablues_mw_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_narea",
+                             scheme = "GWW_50%_efmw"
+)
+corrN_GWW_50efmw<- data.frame(GWW_50 = rep(NA,20))
+corrN_GWW_50efmw$GWW_50 <- result_N_GWW_efmw$ac
+fwrite(corrN_GWW_50efmw, "./output/GWW_efmw_narea/corrN_GWW_50efmw.csv")  
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/50%/G50inv_ef.rds")
+result_N_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(nareablues_ef_correct),
+                           validation = nareablues_mw_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_ef,
+                           data = "GWW_efmw_narea",
+                           scheme = "G_50%_efmw"
+)
+corrN_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrN_G_50efmw$G_50 <- result_N_G50_efmw$ac
+fwrite(corrN_G_50efmw, "./output/GWW_efmw_narea/corrN_G_50efmw.csv")
+
+
+# ---------------------cv for narea train mw val on ef using GWW matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/10%/GWWinv_mw.rds")
+result_N_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(nareablues_mw_correct),
+                             validation = nareablues_ef_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_narea",
+                             scheme = "GWW_10%_mwef"
+)
+corrN_GWW_10mwef<- data.frame(GWW_10 = rep(NA,20))
+corrN_GWW_10mwef$GWW_10 <- result_N_GWW_mwef$ac
+fwrite(corrN_GWW_10mwef, "./output/GWW_mwef_narea/corrN_GWW_10mwef.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/10%/G10inv_mw.rds")
+result_N_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G10inv_mw,
+                           data = "GWW_mwef_narea",
+                           scheme = "G_10%_mwef"
+)
+corrN_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrN_G_10mwef$G_10 <- result_N_G10_mwef$ac
+fwrite(corrN_G_10mwef, "./output/GWW_mwef_narea/corrN_G_10mwef.csv")
+
+# ---------------------25%---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/25%/GWWinv_mw.rds")
+result_N_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(nareablues_mw_correct),
+                             validation = nareablues_ef_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_narea",
+                             scheme = "GWW_25%_mwef"
+)
+corrN_GWW_25mwef<- data.frame(GWW_25 = rep(NA,20))
+corrN_GWW_25mwef$GWW_25 <- result_N_GWW_mwef$ac
+fwrite(corrN_GWW_25mwef, "./output/GWW_mwef_narea/corrN_GWW_25mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/25%/G25inv_mw.rds")
+result_N_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G25inv_mw,
+                           data = "GWW_mwef_narea",
+                           scheme = "G_25%_mwef"
+)
+corrN_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrN_G_25mwef$G_25 <- result_N_G25_mwef$ac
+fwrite(corrN_G_25mwef, "./output/GWW_mwef_narea/corrN_G_25mwef.csv")
+
+# ---------------------50%---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/50%/GWWinv_mw.rds")
+result_N_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(nareablues_mw_correct),
+                             validation = nareablues_ef_correct, 
+                             mytrait = "narea", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_narea",
+                             scheme = "GWW_50%_mwef"
+)
+corrN_GWW_50mwef<- data.frame(GWW_50 = rep(NA,20))
+corrN_GWW_50mwef$GWW_50 <- result_N_GWW_mwef$ac
+fwrite(corrN_GWW_50mwef, "./output/GWW_mwef_narea/corrN_GWW_50mwef.csv") 
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/50%/G50inv_mw.rds")
+result_N_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(nareablues_mw_correct),
+                           validation = nareablues_ef_correct, 
+                           mytrait = "narea", 
+                           GINV = G50inv_mw,
+                           data = "GWW_mwef_narea",
+                           scheme = "G_50%_mwef"
+)
+corrN_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrN_G_50mwef$G_50 <- result_N_G50_mwef$ac
+fwrite(corrN_G_50mwef, "./output/GWW_mwef_narea/corrN_G_50mwef.csv")
+
+
+# -------cv for sla train mw val on ef using GWW matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/10%/GWWinv_mw.rds")
+result_S_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(slablues_mw_correct),
+                             validation = slablues_ef_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_sla",
+                             scheme = "GWW_10%_mwef"
+)
+corrS_GWW_10mwef<- data.frame(GWW_10 = rep(NA,20))
+corrS_GWW_10mwef$GWW_10 <- result_S_GWW_mwef$ac
+fwrite(corrS_GWW_10mwef, "./output/GWW_mwef_sla/corrS_GWW_10mwef.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/10%/G10inv_mw.rds")
+result_S_G10_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_mw,
+                           data = "GWW_mwef_sla",
+                           scheme = "G_10%_mwef"
+)
+corrS_G_10mwef<- data.frame(G_10 = rep(NA,20))
+corrS_G_10mwef$G_10 <- result_S_G10_mwef$ac
+fwrite(corrS_G_10mwef, "./output/GWW_mwef_sla/corrS_G_10mwef.csv")
+
+
+# ---------------------25%---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/25%/GWWinv_mw.rds")
+result_S_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(slablues_mw_correct),
+                             validation = slablues_ef_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_sla",
+                             scheme = "GWW_25%_mwef"
+)
+corrS_GWW_25mwef<- data.frame(GWW_25 = rep(NA,20))
+corrS_GWW_25mwef$GWW_25 <- result_S_GWW_mwef$ac
+fwrite(corrS_GWW_25mwef, "./output/GWW_mwef_sla/corrS_GWW_25mwef.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/25%/G25inv_mw.rds")
+result_S_G25_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_mw,
+                           data = "GWW_mwef_sla",
+                           scheme = "G_25%_mwef"
+)
+corrS_G_25mwef<- data.frame(G_25 = rep(NA,20))
+corrS_G_25mwef$G_25 <- result_S_G25_mwef$ac
+fwrite(corrS_G_25mwef, "./output/GWW_mwef_sla/corrS_G_25mwef.csv")
+
+# ---------------------50%---------------------
+GWWinv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/50%/GWWinv_mw.rds")
+result_S_GWW_mwef<- crossv(sort = sort,
+                             train = na.omit(slablues_mw_correct),
+                             validation = slablues_ef_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_mw,
+                             data = "GWW_mwef_sla",
+                             scheme = "GWW_50%_mwef"
+)
+corrS_GWW_50mwef<- data.frame(GWW_50 = rep(NA,20))
+corrS_GWW_50mwef$GWW_50 <- result_S_GWW_mwef$ac
+fwrite(corrS_GWW_50mwef, "./output/GWW_mwef_sla/corrS_GWW_50mwef.csv")       
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_mw <- readRDS(file = "./data/relmatrices/GWW/mw/50%/G50inv_mw.rds")
+result_S_G50_mwef<- crossv(sort = sort,
+                           train = na.omit(slablues_mw_correct),
+                           validation = slablues_ef_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_mw,
+                           data = "GWW_mwef_sla",
+                           scheme = "G_50%_mwef"
+)
+corrS_G_50mwef<- data.frame(G_50 = rep(NA,20))
+corrS_G_50mwef$G_50 <- result_S_G50_mwef$ac
+fwrite(corrS_G_50mwef, "./output/GWW_mwef_sla/corrS_G_50mwef.csv")
+
+
+# ---------------------cv for sla train ef val on mw using GWW matrix with 10%,25%, 50% scheme ---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/10%/GWWinv_ef.rds")
+result_S_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(slablues_ef_correct),
+                             validation = slablues_mw_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_sla",
+                             scheme = "GWW_10%_efmw"
+)
+corrS_GWW_10efmw<- data.frame(GWW_10 = rep(NA,20))
+corrS_GWW_10efmw$GWW_10 <- result_S_GWW_efmw$ac
+fwrite(corrS_GWW_10efmw, "./output/GWW_efmw_sla/corrS_GWW_10efmw.csv")
+# ---------------------GBLUP with the removed individual---------------------
+G10inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/10%/G10inv_ef.rds")
+result_S_G10_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G10inv_ef,
+                           data = "GWW_efmw_sla",
+                           scheme = "G_10%_efmw"
+)
+corrS_G_10efmw<- data.frame(G_10 = rep(NA,20))
+corrS_G_10efmw$G_10 <- result_S_G10_efmw$ac
+fwrite(corrS_G_10efmw, "./output/GWW_efmw_sla/corrS_G_10efmw.csv")
+
+
+# ---------------------25%---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/25%/GWWinv_ef.rds")
+result_S_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(slablues_ef_correct),
+                             validation = slablues_mw_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_sla",
+                             scheme = "GWW_25%_efmw"
+)
+corrS_GWW_25efmw<- data.frame(GWW_25 = rep(NA,20))
+corrS_GWW_25efmw$GWW_25 <- result_S_GWW_efmw$ac
+fwrite(corrS_GWW_25efmw, "./output/GWW_efmw_sla/corrS_GWW_25efmw.csv")
+
+# ---------------------GBLUP with the removed individual---------------------
+G25inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/25%/G25inv_ef.rds")
+result_S_G25_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G25inv_ef,
+                           data = "GWW_efmw_sla",
+                           scheme = "G_25%_efmw"
+)
+corrS_G_25efmw<- data.frame(G_25 = rep(NA,20))
+corrS_G_25efmw$G_25 <- result_S_G25_efmw$ac
+fwrite(corrS_G_25efmw, "./output/GWW_efmw_sla/corrS_G_25efmw.csv")
+
+
+
+# ---------------------50%---------------------
+GWWinv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/50%/GWWinv_ef.rds")
+result_S_GWW_efmw<- crossv(sort = sort,
+                             train = na.omit(slablues_ef_correct),
+                             validation = slablues_mw_correct, 
+                             mytrait = "sla", 
+                             GINV = GWWinv_ef,
+                             data = "GWW_efmw_sla",
+                             scheme = "GWW_50%_efmw"
+)
+corrS_GWW_50efmw<- data.frame(GWW_50 = rep(NA,20))
+corrS_GWW_50efmw$GWW_50 <- result_S_GWW_efmw$ac
+fwrite(corrS_GWW_50efmw, "./output/GWW_efmw_sla/corrS_GWW_50efmw.csv")     
+
+# ---------------------GBLUP with the removed individual---------------------
+G50inv_ef <- readRDS(file = "./data/relmatrices/GWW/ef/50%/G50inv_ef.rds")
+result_S_G50_efmw<- crossv(sort = sort,
+                           train = na.omit(slablues_ef_correct),
+                           validation = slablues_mw_correct, 
+                           mytrait = "sla", 
+                           GINV = G50inv_ef,
+                           data = "GWW_efmw_sla",
+                           scheme = "G_50%_efmw"
+)
+corrS_G_50efmw<- data.frame(G_50 = rep(NA,20))
+corrS_G_50efmw$G_50 <- result_S_G50_efmw$ac
+fwrite(corrS_G_50efmw, "./output/GWW_efmw_sla/corrS_G_50efmw.csv")
 
