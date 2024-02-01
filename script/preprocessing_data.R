@@ -1,3 +1,4 @@
+#loading library-----------------
 library(tidyverse)
 library(asreml)
 source('./script/outlier.R')
@@ -209,387 +210,223 @@ mwef_narea_plot<- ggplot(narea_accuracy_mwef, aes(x = models, y = accuracy,
 narea_plot<- plot_grid(joint_narea_plot,efmw_narea_plot,mwef_narea_plot, ncol=3)
 sla_plot<- plot_grid(joint_sla_plot,efmw_sla_plot,mwef_sla_plot, ncol=3)
 
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for narea joint loc
+Gh2<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_10j.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_10j.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_joint_narea/corrN_GWW_10j.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_10j.csv") %>% rename(Gnirs= Gnirs_10)
+narea_10_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
 
-#combined models visulaization
-#visualizing the GWW model compared to genomic model and wholewave model for sla efmw
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for narea joint loc
+Gh2<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_25j.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_25j.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_joint_narea/corrN_GWW_25j.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_25j.csv") %>% rename(Gnirs= Gnirs_25)
+narea_25_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
 
-corrS_GWW_10efmw<- read.csv("./output/GWW_efmw_sla/corrS_GWW_10efmw.csv")
-corrS_GWW_25efmw<- read.csv("./output/GWW_efmw_sla/corrS_GWW_25efmw.csv")
-corrS_GWW_50efmw<- read.csv("./output/GWW_efmw_sla/corrS_GWW_50efmw.csv")
-corr_S_wholewave_efmw<- read.csv("./output/wholewave/corr_S_wholewave_efmw.csv")%>% 
-  rename(wholewave= result_sla_wholewave_efmw.ac)
-corr_S_efmw<- read.csv("./output/GBLUP/corr_S_efmw.csv")%>% 
-  rename(GBLUP = result_sla_efmw.ac)
-
-sla_GWW_efmw<- bind_cols(corr_S_efmw,corr_S_wholewave_efmw,corrS_GWW_50efmw,
-                              corrS_GWW_25efmw,corrS_GWW_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-
-#creating GWW vs whole wave Vs GBLUP model accuracy for sla efmw
-p1<- ggplot(sla_GWW_efmw, aes(x = models, y = accuracy, 
-                                              fill = models)) +
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for narea joint loc
+Gh2<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_50j.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_50j.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_joint_narea/corrN_GWW_50j.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_50j.csv") %>% rename(Gnirs= Gnirs_50)
+narea_50_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+narea_joint <- bind_rows(narea_10_joint,narea_25_joint,narea_50_joint)
+#creating plot for three different scheme 
+narea_joint <-ggplot(narea_joint, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model using ef training and mw val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
+ggsave("./figures/narea_joint.png", plot = narea_joint, width = 15, height = 6, units = "in")
 
-#visualizing the Gnirs model compared to genomic model and wholewave model for sla efmw
-corrS_Gnirs_10efmw<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_10efmw.csv")
-corrS_Gnirs_25efmw<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_25efmw.csv")
-corrS_Gnirs_50efmw<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_50efmw.csv")
-corr_S_nirs_efmw<- read.csv("./output/NIRS/corr_S_nirs_efmw.csv")%>% 
-  rename(nirs= result_sla_nirs_efmw.ac)
-corr_S_efmw<- read.csv("./output/GBLUP/corr_S_efmw.csv")%>% 
-  rename(GBLUP = result_sla_efmw.ac)
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for sla joint loc
+Gh2<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_10j.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_10j.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_joint_sla/corrS_GWW_10j.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_10j.csv") %>% rename(Gnirs= Gnirs_10)
+sla_10_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
 
-sla_Gnirs_efmw <- bind_cols(corr_S_efmw,corr_S_nirs_efmw,corrS_Gnirs_50efmw,
-                         corrS_Gnirs_25efmw,corrS_Gnirs_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for sla efmw
-p2<- ggplot(sla_Gnirs_efmw, aes(x = models, y = accuracy, 
-                              fill = models)) +
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for sla joint loc
+Gh2<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_25j.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_25j.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_joint_sla/corrS_GWW_25j.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_25j.csv") %>% rename(Gnirs= Gnirs_25)
+sla_25_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
+
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for sla joint loc
+Gh2<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_50j.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_50j.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_joint_sla/corrS_GWW_50j.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_50j.csv") %>% rename(Gnirs= Gnirs_50)
+sla_50_joint <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+
+sla_joint <- bind_rows(sla_10_joint,sla_25_joint, sla_50_joint)
+
+#creating plot for three different scheme 
+sla_joint<-ggplot(sla_joint, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model using ef training and mw val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
 
-#visualizing the Gh2 model compared to genomic model and highh2 model for sla efmw
-corrS_Gh2_10efmw<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_10efmw.csv")
-corrS_Gh2_25efmw<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_25efmw.csv")
-corrS_Gh2_50efmw<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_50efmw.csv")
-corr_S_highh2_efmw<- read.csv("./output/highh2/corr_S_highh2_efmw.csv")%>% 
-  rename(highh2= result_sla_highh2_efmw.ac)
-corr_S_efmw<- read.csv("./output/GBLUP/corr_S_efmw.csv")%>% 
-  rename(GBLUP = result_sla_efmw.ac)
+ggsave("./figures/sla_joint.png", plot = sla_joint, width = 15, height = 6, units = "in")
 
-sla_Gh2_efmw <- bind_cols(corr_S_efmw,corr_S_highh2_efmw,corrS_Gh2_50efmw,
-                            corrS_Gh2_25efmw,corrS_Gh2_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for sla efmw
-p3<- ggplot(sla_Gh2_efmw, aes(x = models, y = accuracy, 
-                                fill = models)) +
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for sla efmw loc
+Gh2<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_10efmw.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_10efmw.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_efmw_sla/corrS_GWW_10efmw.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_10efmw.csv") %>% rename(Gnirs= Gnirs_10)
+sla_10_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for sla joint loc
+Gh2<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_25efmw.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_25efmw.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_efmw_sla/corrS_GWW_25efmw.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_25efmw.csv") %>% rename(Gnirs= Gnirs_25)
+sla_25_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for sla joint loc
+Gh2<- read.csv("./output/Gh2_efmw_sla/corrS_Gh2_50efmw.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_50efmw.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_efmw_sla/corrS_GWW_50efmw.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_efmw_sla/corrS_Gnirs_50efmw.csv") %>% rename(Gnirs= Gnirs_50)
+sla_50_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+
+sla_efmw <- bind_rows(sla_10_efmw,sla_25_efmw, sla_50_efmw)
+
+#creating plot for three different scheme 
+sla_efmw<-ggplot(sla_efmw, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model using ef training and mw val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
 
+ggsave("./figures/sla_efmw.png", plot = sla_efmw, width = 15, height = 6, units = "in")
 
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for sla mwef loc
+Gh2<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_10mwef.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_10mwef.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_mwef_sla/corrS_GWW_10mwef.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_10mwef.csv") %>% rename(Gnirs= Gnirs_10)
+sla_10_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
 
-#visualizing the GWW model compared to genomic model and wholewave model for sla mwef
-corrS_GWW_10mwef<- read.csv("./output/GWW_mwef_sla/corrS_GWW_10mwef.csv")
-corrS_GWW_25mwef<- read.csv("./output/GWW_mwef_sla/corrS_GWW_25mwef.csv")
-corrS_GWW_50mwef<- read.csv("./output/GWW_mwef_sla/corrS_GWW_50mwef.csv")
-corr_S_wholewave_mwef<- read.csv("./output/wholewave/corr_S_wholewave_mwef.csv")%>% 
-  rename(wholewave= result_sla_wholewave_mwef.ac)
-corr_S_mwef<- read.csv("./output/GBLUP/corr_S_mwef.csv")%>% 
-  rename(GBLUP = result_sla_mwef.ac)
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for sla joint loc
+Gh2<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_25mwef.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_25mwef.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_mwef_sla/corrS_GWW_25mwef.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_25mwef.csv") %>% rename(Gnirs= Gnirs_25)
+sla_25_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
 
-sla_GWW_mwef<- bind_cols(corr_S_mwef,corr_S_wholewave_mwef,corrS_GWW_50mwef,
-                         corrS_GWW_25mwef,corrS_GWW_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating GWW vs whole wave Vs GBLUP model accuracy for sla mwef
-p4<- ggplot(sla_GWW_mwef, aes(x = models, y = accuracy, 
-                              fill = models)) +
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for sla joint loc
+Gh2<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_50mwef.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrS_50mwef.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_mwef_sla/corrS_GWW_50mwef.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_50mwef.csv") %>% rename(Gnirs= Gnirs_50)
+sla_50_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+
+sla_mwef <- bind_rows(sla_10_mwef,sla_25_mwef, sla_50_mwef)
+
+#creating plot for three different scheme 
+sla_mwef<-ggplot(sla_mwef, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model using mw training and ef val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
 
-#visualizing the Gnirs model compared to genomic model and wholewave model for sla efmw
-corrS_Gnirs_10mwef<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_10mwef.csv")
-corrS_Gnirs_25mwef<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_25mwef.csv")
-corrS_Gnirs_50mwef<- read.csv("./output/Gnirs_mwef_sla/corrS_Gnirs_50mwef.csv")
-corr_S_nirs_mwef<- read.csv("./output/NIRS/corr_sla_nirs_mwef.csv")%>% 
-  rename(nirs= result_sla_nirs_mwef.ac)
-corr_S_mwef<- read.csv("./output/GBLUP/corr_S_mwef.csv")%>% 
-  rename(GBLUP = result_sla_mwef.ac)
+ggsave("./figures/sla_mwef.png", plot = sla_mwef, width = 15, height = 6, units = "in")
 
-sla_Gnirs_mwef <- bind_cols(corr_S_mwef,corr_S_nirs_mwef,corrS_Gnirs_50mwef,
-                            corrS_Gnirs_25mwef,corrS_Gnirs_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for sla efmw
-p5<- ggplot(sla_Gnirs_mwef, aes(x = models, y = accuracy, 
-                                fill = models)) +
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for narea efmw loc
+Gh2<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_10efmw.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_10efmw.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_efmw_narea/corrN_GWW_10efmw.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_10efmw.csv") %>% rename(Gnirs= Gnirs_10)
+narea_10_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for narea efmw loc
+Gh2<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_25efmw.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_25efmw.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_efmw_narea/corrN_GWW_25efmw.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_25efmw.csv") %>% rename(Gnirs= Gnirs_25)
+narea_25_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for narea efmw loc
+Gh2<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_50efmw.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_50efmw.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_efmw_narea/corrN_GWW_50efmw.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_50efmw.csv") %>% rename(Gnirs= Gnirs_50)
+narea_50_efmw <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+narea_efmw <- bind_rows(narea_10_efmw,narea_25_efmw,narea_50_efmw)
+#creating plot for three different scheme 
+narea_efmw <-ggplot(narea_efmw, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model using mw training and ef val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
+ggsave("./figures/narea_efmw.png", plot = narea_efmw, width = 15, height = 6, units = "in")
 
-#visualizing the Gh2 model compared to genomic model and highh2 model for sla efmw
-corrS_Gh2_10mwef<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_10mwef.csv")
-corrS_Gh2_25mwef<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_25mwef.csv")
-corrS_Gh2_50mwef<- read.csv("./output/Gh2_mwef_sla/corrS_Gh2_50mwef.csv")
-corr_S_highh2_mwef<- read.csv("./output/highh2/corr_S_highh2_mwef.csv")%>% 
-  rename(highh2= result_sla_highh2_mwef.ac)
-corr_S_mwef<- read.csv("./output/GBLUP/corr_S_mwef.csv")%>% 
-  rename(GBLUP = result_sla_mwef.ac)
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 10% for narea mwef loc
+Gh2<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_10mwef.csv")%>% rename(Gh2= Gh2_10)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_10mwef.csv") %>% rename(GBLUP= G_10)
+GWW<- read.csv("./output/GWW_mwef_narea/corrN_GWW_10mwef.csv") %>% rename(GWW= GWW_10)
+Gnirs<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_10mwef.csv") %>% rename(Gnirs= Gnirs_10)
+narea_10_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "10%")
 
-sla_Gh2_mwef <- bind_cols(corr_S_mwef,corr_S_highh2_mwef,corrS_Gh2_50mwef,
-                          corrS_Gh2_25mwef,corrS_Gh2_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for sla efmw
-p6 <- ggplot(sla_Gh2_mwef, aes(x = models, y = accuracy, 
-                              fill = models)) +
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 25% for narea mwef loc
+Gh2<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_25mwef.csv")%>% rename(Gh2= Gh2_25)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_25mwef.csv") %>% rename(GBLUP= G_25)
+GWW<- read.csv("./output/GWW_mwef_narea/corrN_GWW_25mwef.csv") %>% rename(GWW= GWW_25)
+Gnirs<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_25mwef.csv") %>% rename(Gnirs= Gnirs_25)
+narea_25_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "25%")
+
+#creating boxplot comparing GBLUP, Gh2, GWW, Gnirs for 50% for narea mwef loc
+Gh2<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_50mwef.csv")%>% rename(Gh2= Gh2_50)
+GBLUP<- read.csv("./output/GBLUP_reduced/corrN_50mwef.csv") %>% rename(GBLUP= G_50)
+GWW<- read.csv("./output/GWW_mwef_narea/corrN_GWW_50mwef.csv") %>% rename(GWW= GWW_50)
+Gnirs<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_50mwef.csv") %>% rename(Gnirs= Gnirs_50)
+narea_50_mwef <- bind_cols(GBLUP,Gh2,GWW,Gnirs)%>%
+  pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy") %>%  mutate(scheme= "50%")
+narea_mwef <- bind_rows(narea_10_mwef,narea_25_mwef,narea_50_mwef)
+#creating plot for three different scheme 
+narea_mwef <-ggplot(narea_mwef, aes(x = models, y = accuracy, fill = models)) +
   geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model using mw training and ef val for sla",
+  facet_wrap(~ scheme, scales = "free", nrow = 1) +
+  labs(title = "Boxplot of Accuracy by Scheme",
        x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the GWW model compared to genomic model and wholewave model for narea mwef
-corrN_GWW_10mwef<- read.csv("./output/GWW_mwef_narea/corrN_GWW_10mwef.csv")
-corrN_GWW_25mwef<- read.csv("./output/GWW_mwef_narea/corrN_GWW_25mwef.csv")
-corrN_GWW_50mwef<- read.csv("./output/GWW_mwef_narea/corrN_GWW_50mwef.csv")
-corr_N_wholewave_mwef<- read.csv("./output/wholewave/corr_N_wholewave_mwef.csv")%>% 
-  rename(wholewave= result_narea_wholewave_mwef.ac)
-
-corr_N_mwef <- read.csv("./output/GBLUP/ corr_N_mwef.csv")%>% 
-  rename(GBLUP = result_narea_mwef.ac)
-
-narea_GWW_mwef<- bind_cols(corr_N_mwef,corr_N_wholewave_mwef,corrN_GWW_50mwef,
-                         corrN_GWW_25mwef,corrN_GWW_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating GWW vs whole wave Vs GBLUP model accuracy for narea mwef
-p7<- ggplot(narea_GWW_mwef, aes(x = models, y = accuracy, 
-                              fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model using mw training and ef val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gnirs model compared to genomic model and wholewave model for narea mwef
-corrN_Gnirs_10mwef<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_10mwef.csv")
-corrN_Gnirs_25mwef<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_25mwef.csv")
-corrN_Gnirs_50mwef<- read.csv("./output/Gnirs_mwef_narea/corrN_Gnirs_50mwef.csv")
-corr_N_nirs_mwef<- read.csv("./output/NIRS/corr_N_nirs_mwef.csv")%>% 
-  rename(nirs= result_narea_nirs_mwef.ac)
-corr_N_mwef<- read.csv("./output/GBLUP/ corr_N_mwef.csv")%>% 
-  rename(GBLUP = result_narea_mwef.ac)
-
-narea_Gnirs_mwef <- bind_cols(corr_N_mwef,corr_N_nirs_mwef,corrN_Gnirs_50mwef,
-                            corrN_Gnirs_25mwef,corrN_Gnirs_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for narea mwef
-p8<- ggplot(narea_Gnirs_mwef, aes(x = models, y = accuracy, 
-                                fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model using mw training and ef val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gh2 model compared to genomic model and highh2 model for narea efmw
-corrN_Gh2_10mwef<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_10mwef.csv")
-corrN_Gh2_25mwef<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_25mwef.csv")
-corrN_Gh2_50mwef<- read.csv("./output/Gh2_mwef_narea/corrN_Gh2_50mwef.csv")
-corr_N_highh2_mwef<- read.csv("./output/highh2/corr_N_highh2_mwef.csv")%>% 
-  rename(highh2= result_narea_highh2_mwef.ac)
-corr_N_mwef<- read.csv("./output/GBLUP/ corr_N_mwef.csv")%>% 
-  rename(GBLUP = result_narea_mwef.ac)
-
-narea_Gh2_mwef <- bind_cols(corr_N_mwef,corr_N_highh2_mwef,corrN_Gh2_50mwef,
-                          corrN_Gh2_25mwef,corrN_Gh2_10mwef )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for narea mwef
-p9 <- ggplot(narea_Gh2_mwef, aes(x = models, y = accuracy, 
-                               fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model using mw training and ef val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the GWW model compared to genomic model and wholewave model for narea efmw
-corrN_GWW_10efmw<- read.csv("./output/GWW_efmw_narea/corrN_GWW_10efmw.csv")
-corrN_GWW_25efmw<- read.csv("./output/GWW_efmw_narea/corrN_GWW_25efmw.csv")
-corrN_GWW_50efmw<- read.csv("./output/GWW_efmw_narea/corrN_GWW_50efmw.csv")
-corr_N_wholewave_efmw<- read.csv("./output/wholewave/corr_N_wholewave_efmw.csv")%>% 
-  rename(wholewave= result_narea_wholewave_efmw.ac)
-
-corr_N_efmw <- read.csv("./output/GBLUP/corr_N_efmw.csv")%>% 
-  rename(GBLUP = result_narea_efmw.ac)
-
-narea_GWW_efmw<- bind_cols(corr_N_efmw,corr_N_wholewave_efmw,corrN_GWW_50efmw,
-                           corrN_GWW_25efmw,corrN_GWW_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating GWW vs whole wave Vs GBLUP model accuracy for narea efmw
-p10<- ggplot(narea_GWW_efmw, aes(x = models, y = accuracy, 
-                                fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model using ef training and mw val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gnirs model compared to genomic model and wholewave model for narea efmw
-corrN_Gnirs_10efmw<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_10efmw.csv")
-corrN_Gnirs_25efmw<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_25efmw.csv")
-corrN_Gnirs_50efmw<- read.csv("./output/Gnirs_efmw_narea/corrN_Gnirs_50efmw.csv")
-corr_N_nirs_efmw<- read.csv("./output/NIRS/corr_N_nirs_efmw.csv")%>% 
-  rename(nirs= result_narea_nirs_efmw.ac)
-corr_N_efmw<- read.csv("./output/GBLUP/corr_N_efmw.csv")%>% 
-  rename(GBLUP = result_narea_efmw.ac)
-narea_Gnirs_efmw <- bind_cols(corr_N_efmw,corr_N_nirs_efmw,corrN_Gnirs_50efmw,
-                              corrN_Gnirs_25efmw,corrN_Gnirs_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for narea efmw
-p11<- ggplot(narea_Gnirs_efmw, aes(x = models, y = accuracy, 
-                                  fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model using ef training and mw val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gh2 model compared to genomic model and highh2 model for narea efmw
-corrN_Gh2_10efmw<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_10efmw.csv")
-corrN_Gh2_25efmw<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_25efmw.csv")
-corrN_Gh2_50efmw<- read.csv("./output/Gh2_efmw_narea/corrN_Gh2_50efmw.csv")
-corr_N_highh2_efmw<- read.csv("./output/highh2/corr_N_highh2_efmw.csv")%>% 
-  rename(highh2= result_narea_highh2_efmw.ac)
-corr_N_efmw<- read.csv("./output/GBLUP/corr_N_efmw.csv")%>% 
-  rename(GBLUP = result_narea_efmw.ac)
-narea_Gh2_efmw <- bind_cols(corr_N_efmw,corr_N_highh2_efmw,corrN_Gh2_50efmw,
-                            corrN_Gh2_25efmw,corrN_Gh2_10efmw )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for narea efmw
-p12 <- ggplot(narea_Gh2_efmw, aes(x = models, y = accuracy, 
-                                 fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model using ef training and mw val for narea",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the GWW model compared to genomic model and wholewave model for narea joint
-corrN_GWW_10j<- read.csv("./output/GWW_joint_narea/corrN_GWW_10j.csv")
-corrN_GWW_25j<- read.csv("./output/GWW_joint_narea/corrN_GWW_25j.csv")
-corrN_GWW_50j<- read.csv("./output/GWW_joint_narea/corrN_GWW_50j.csv")
-corr_N_wholewave_joint<- read.csv("./output/wholewave/corr_N_wholewave_joint.csv")%>% 
-  rename(wholewave= result_N_wholewave_joint.ac)
-corr_N_joint <- read.csv("./output/GBLUP/corr_N_joint.csv")%>% 
-  rename(GBLUP = result_N.ac)
-narea_GWW_joint<- bind_cols(corr_N_joint,corr_N_wholewave_joint,corrN_GWW_50j,
-                           corrN_GWW_25j,corrN_GWW_10j )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating GWW vs whole wave Vs GBLUP model accuracy for narea joint
-p13<- ggplot(narea_GWW_joint, aes(x = models, y = accuracy, 
-                                 fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model for narea joint loc",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gnirs model compared to genomic model and wholewave model for narea joint
-corrN_Gnirs_10j<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_10j.csv")
-corrN_Gnirs_25j<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_25j.csv")
-corrN_Gnirs_50j<- read.csv("./output/Gnirs_joint_narea/corrN_Gnirs_50j.csv")
-corr_N_nirs_joint<- read.csv("./output/NIRS/corr_N_nirs_joint.csv")%>% 
-  rename(nirs= result_N_nirs_joint.ac)
-corr_N_joint<- read.csv("./output/GBLUP/corr_N_joint.csv")%>% 
-  rename(GBLUP = result_N.ac)
-narea_Gnirs_joint <- bind_cols(corr_N_joint,corr_N_nirs_joint,corrN_Gnirs_50j,
-                              corrN_Gnirs_25j,corrN_Gnirs_10j )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for narea joint
-p14<- ggplot(narea_Gnirs_joint, aes(x = models, y = accuracy, 
-                                   fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model for narea joint",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",
-                     limits=c(-0.2,0.55), 
-                     breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gh2 model compared to genomic model and highh2 model for narea joint
-corrN_Gh2_10j<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_10j.csv")
-corrN_Gh2_25j<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_25j.csv")
-corrN_Gh2_50j<- read.csv("./output/Gh2_joint_narea/corrN_Gh2_50j.csv")
-corr_N_highh2_joint<- read.csv("./output/highh2/corr_N_highh2_joint.csv")%>% 
-  rename(highh2= result_N_highh2_joint.ac)
-corr_N_joint<- read.csv("./output/GBLUP/corr_N_joint.csv")%>% 
-  rename(GBLUP = result_N.ac)
-narea_Gh2_joint <- bind_cols(corr_N_joint,corr_N_highh2_joint,corrN_Gh2_50j,
-                            corrN_Gh2_25j,corrN_Gh2_10j)%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for narea joint
-p15 <- ggplot(narea_Gh2_joint, aes(x = models, y = accuracy, 
-                                  fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model for narea joint loc",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the GWW model compared to genomic model and wholewave model for sla joint
-corrS_GWW_10j<- read.csv("./output/GWW_joint_sla/corrS_GWW_10j.csv")
-corrS_GWW_25j<- read.csv("./output/GWW_joint_sla/corrS_GWW_25j.csv")
-corrS_GWW_50j<- read.csv("./output/GWW_joint_sla/corrS_GWW_50j.csv")
-corr_S_wholewave_joint<- read.csv("./output/wholewave/corr_S_wholewave_joint.csv")%>% 
-  rename(wholewave= result_S_wholewave_joint.ac)
-corr_S_joint <- read.csv("./output/GBLUP/corr_S_joint.csv")%>% 
-  rename(GBLUP = result_S.ac)
-sla_GWW_joint<- bind_cols(corr_S_joint,corr_S_wholewave_joint,corrS_GWW_50j,
-                            corrS_GWW_25j,corrS_GWW_10j )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating GWW vs whole wave Vs GBLUP model accuracy for sla joint
-p16<- ggplot(sla_GWW_joint, aes(x = models, y = accuracy, 
-                                  fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ wholewave model vs GBLUP and wholewave model for sla joint loc",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gnirs model compared to genomic model and wholewave model for sla joint
-corrS_Gnirs_10j<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_10j.csv")
-corrS_Gnirs_25j<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_25j.csv")
-corrS_Gnirs_50j<- read.csv("./output/Gnirs_joint_sla/corrS_Gnirs_50j.csv")
-corr_S_nirs_joint<- read.csv("./output/NIRS/corr_S_nirs_joint.csv")%>% 
-  rename(nirs= result_S_nirs_joint.ac)
-corr_S_joint<- read.csv("./output/GBLUP/corr_S_joint.csv")%>% 
-  rename(GBLUP = result_S.ac)
-sla_Gnirs_joint <- bind_cols(corr_S_joint,corr_S_nirs_joint,corrS_Gnirs_50j,
-                               corrS_Gnirs_25j,corrS_Gnirs_10j )%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gnirs Vs GBLUP and nirs model accuracy for sla joint
-p17<- ggplot(sla_Gnirs_joint, aes(x = models, y = accuracy, 
-                                    fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ nirs model vs GBLUP and nirs model for sla joint",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-#visualizing the Gh2 model compared to genomic model and highh2 model for narea joint
-corrS_Gh2_10j<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_10j.csv")
-corrS_Gh2_25j<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_25j.csv")
-corrS_Gh2_50j<- read.csv("./output/Gh2_joint_sla/corrS_Gh2_50j.csv")
-corr_S_highh2_joint<- read.csv("./output/highh2/corr_S_highh2_joint.csv")%>% 
-  rename(highh2= result_S_highh2_joint.ac)
-corr_S_joint<- read.csv("./output/GBLUP/corr_S_joint.csv")%>% 
-  rename(GBLUP = result_S.ac)
-sla_Gh2_joint <- bind_cols(corr_S_joint,corr_S_highh2_joint,corrS_Gh2_50j,
-                             corrS_Gh2_25j,corrS_Gh2_10j)%>%
-  pivot_longer(cols = 1:5,names_to = "models", values_to = "accuracy")
-#creating Gh2 vs whole wave Vs GBLUP model accuracy for sla joint
-p18 <- ggplot(sla_Gh2_joint, aes(x = models, y = accuracy, 
-                                   fill = models)) +
-  geom_boxplot() +
-  labs(title = "Genomic+ h2 model vs GBLUP and highly heritable wave model for sla joint loc",
-       x = "Models",
-       y = "Accuracy")+
-  scale_y_continuous("prediction accuracy",limits=c(-0.2,0.55), breaks=c(0,0.1,0.2,0.3,0.4,0.5))+ theme(aspect.ratio = 0.7)
-
-
-
-
-
+       y = "Prediction Accuracy") +
+  scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
+  theme(aspect.ratio = 0.7)
+ggsave("./figures/narea_mwef.png", plot = narea_mwef, width = 15, height = 6, units = "in")

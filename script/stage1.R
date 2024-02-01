@@ -375,7 +375,7 @@ for (i in 1:length(variables)) {
   })
 }
 fwrite( wavebluesEF, "./output/wavebluesEF.csv", row.names = FALSE)
-# ---------------------Obtaining BLUEs for N and SLA---------------------
+# ---------------------Obtaining BLUEs for Narea and SLA---------------------
 # -------------------calculating heritability for narea for each location---------------------
 # ---------------------fitting model---------------------
 nareaMW <- asreml(

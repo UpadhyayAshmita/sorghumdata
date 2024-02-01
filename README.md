@@ -15,3 +15,7 @@ This repository contains all the scripts and data used for the sorghum project.
 -   figures are created through pre-processing script
 
 -   Figures are stored in figures folder
+
+# Methodology for the analysis based on script:
+
+1.  Pre-processing data

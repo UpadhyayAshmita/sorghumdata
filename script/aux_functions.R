@@ -77,3 +77,34 @@ create_folds<- function(individuals, nfolds, reps, seed = 123){
  }
  return(sort)
 }
+
+#function for combine relationship matrix
+library(data.table)
+
+
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_nirs_joint<- read.csv("./data/relmatrices/re_nirs_joint.csv")
+# Function to perform operations on kinship matrix and wholewave matrix
+process_kinship <- function(kin_matrix, 
+                            wave_matrix, 
+                            remove_percent,
+                            comb_matrix, 
+                            seed=123,
+                            scheme,
+                            loc,
+                            percent) {
+  set.seed(seed)
+  N <- nrow(kin_matrix)
+  remove <- sample(1:N, size = round(N * remove_percent))
+  wave_matrix <- kin_matrix
+  (paste0(comb_matrix))[remove, ] <- wave_matrix[remove, ]
+  comb_matrix[, remove] <- wave_matrix[, remove]
+  #write comb_matrix matrix to file
+  write.csv(comb_matrix, paste0("./data/relmatrices/", scheme, "/",loc, "/",percent,remove_percent * 100, ".csv"))
+  # Compute inverse of comb matrix
+  rownames(comb_matrix) <- colnames(comb_matrix)
+  Gb <- G.tuneup(G = as.matrix(comb_matrix), bend = TRUE, eig.tol = 1e-06)$Gb
+  comb_matrixinv <- G.inverse(G = Gb, sparseform = TRUE)
+  # Save inverse of comb matrix to file
+   saveRDS(comb_matrixinv,paste0("./data/relmatrices/", scheme, "/",loc, "/",percent,remove_percent * 100, ".rds"))
+}

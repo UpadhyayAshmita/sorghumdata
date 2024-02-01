@@ -212,7 +212,6 @@ cat('\n')
 #fwrite(designnew, './data/designMW_no_outlier.csv', sep = '\t', row.names = F)
 
 fwrite(h2, "./intermediate/nah2MW.csv",row.names = F)
-
 nah2mw<- fread("./intermediate/nah2MW.csv", data.table = F)
 h2MW_binded<- bind_rows(h2MW,nah2mw)
 h2MW_binded<- drop_na(h2MW_binded)
