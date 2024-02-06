@@ -333,6 +333,7 @@ fwrite(corr_S_highh2_mwef, "./output/highh2/corr_S_highh2_mwef.csv")
 
 
 #GBLUP_reduced model after removing 10,25 and 50% indvidual
+#for narea joint loc
 G10inv_joint <- readRDS(file = "./data/relmatrices/GBLUP/joint/G10inv_joint.rds")
 result_N_G10_j<- crossv(sort = sort,
                         train = na.omit(bluesjoint_narea_correct),
@@ -371,7 +372,7 @@ result_N_G50_j<- crossv(sort = sort,
 corrN_G_50j<- data.frame(G_50 = rep(NA,20))
 corrN_G_50j$G_50 <- result_N_G50_j$ac
 fwrite(corrN_G_50j, "./output/GBLUP_reduced/corrN_50j.csv")
-
+#sla joint loc
 G10inv_joint <- readRDS(file = "./data/relmatrices/GBLUP/joint/G10inv_joint.rds")
 result_S_G10_j<- crossv(sort = sort,
                         train = na.omit(bluesjoint_sla_correct),
@@ -409,6 +410,7 @@ result_S_G50_j<- crossv(sort = sort,
 corrS_G_50j<- data.frame(G_50 = rep(NA,20))
 corrS_G_50j$G_50 <- result_S_G50_j$ac
 fwrite(corrS_G_50j, "./output/GBLUP_reduced/corrS_50j.csv")
+#narea efmw
 G10inv_ef <- readRDS(file = "./data/relmatrices/GBLUP/ef/G10inv_ef.rds")
 result_N_G10_efmw<- crossv(sort = sort,
                            train = na.omit(nareablues_ef_correct),
@@ -447,6 +449,7 @@ result_N_G50_efmw<- crossv(sort = sort,
 corrN_G_50efmw<- data.frame(G_50 = rep(NA,20))
 corrN_G_50efmw$G_50 <- result_N_G50_efmw$ac
 fwrite(corrN_G_50efmw, "./output/GBLUP_reduced/corrN_50efmw.csv")
+#narea mwef
 G10inv_mw <- readRDS(file = "./data/relmatrices/GBLUP/mw/G10inv_mw.rds")
 result_N_G10_mwef<- crossv(sort = sort,
                            train = na.omit(nareablues_mw_correct),
@@ -484,7 +487,7 @@ result_N_G50_mwef<- crossv(sort = sort,
 corrN_50mwef<- data.frame(G_50 = rep(NA,20))
 corrN_50mwef$G_50 <- result_N_G50_mwef$ac
 fwrite(corrN_50mwef, "./output/GBLUP_reduced/corrN_50mwef.csv")
-
+#sla mwef
 G10inv_mw <- readRDS(file = "./data/relmatrices/GBLUP/mw/G10inv_mw.rds")
 result_S_G10_mwef<- crossv(sort = sort,
                            train = na.omit(slablues_mw_correct),
@@ -522,7 +525,7 @@ result_S_G50_mwef<- crossv(sort = sort,
 corrS_G_50mwef<- data.frame(G_50 = rep(NA,20))
 corrS_G_50mwef$G_50 <- result_N_G50_mwef$ac
 fwrite(corrS_G_50mwef, "./output/GBLUP_reduced/corrS_50mwef.csv")
-
+#sla efmw
 G10inv_ef <- readRDS(file = "./data/relmatrices/GBLUP/ef/G10inv_ef.rds")
 result_S_G10_efmw<- crossv(sort = sort,
                            train = na.omit(slablues_ef_correct),

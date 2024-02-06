@@ -304,9 +304,14 @@ set.seed(7)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.1))
 #--------------------for GBLUP--------------------
+dim(kin)
 G10<- kin[-remove, ]
+dim(G10)
 G10<- G10[, -remove]
+dim(G10)
 G10 <- na.omit(G10)
+dim(G10)
+
 fwrite(G10, "./data/relmatrices/GBLUP/ef/G10.csv", row.names = F)
 rownames(G10) <- colnames(G10)
 Gb <- G.tuneup(G = as.matrix(G10), bend = TRUE, eig.tol = 1e-06)$Gb
@@ -331,6 +336,7 @@ Gh2 <- kin
 G25<- kin[-remove, ]
 G25<- G25[, -remove]
 G25 <- na.omit(G25)
+dim(G25)
 fwrite(G25, "./data/relmatrices/GBLUP/ef/G25.csv", row.names = F)
 rownames(G25) <- colnames(G25)
 Gb <- G.tuneup(G = as.matrix(G25), bend = TRUE, eig.tol = 1e-06)$Gb
@@ -354,6 +360,7 @@ Gh2 <- kin
 
 # --------------------for GBLUP--------------------
 G50<- kin[-remove, ]
+dim(G50)
 G50<- G50[, -remove]
 G50 <- na.omit(G50)
 fwrite(G50, "./data/relmatrices/GBLUP/ef/G50.csv", row.names = F)
@@ -724,4 +731,105 @@ rownames(GWW) <- colnames(GWW)
 Gb <- G.tuneup(G = as.matrix(GWW), bend = TRUE, eig.tol = 1e-06)$Gb
 GWWinv_mw<- G.inverse(G = Gb , sparseform = T)
 saveRDS(GWWinv_mw, file = "./data/relmatrices/GWW/mw/50/GWWinv_mw.rds")
+
+
+#replication 2-creating Gh2, GWW and Gnirs 10%,25% and 50% combination matrix
+# ----replacing random 10%,25%,50% from kinship,imputing by high heritable matrix for joint location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_h2_joint<- read.csv("./data/relmatrices/re_h2_joint.csv")
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_joint,remove_percent = 0.1,
+                        seed=345,rep=2)
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_joint,remove_percent = 0.25,
+                        seed=345,rep=2)
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_joint,remove_percent = 0.50,
+                        seed=345,rep=2)
+# ----replacing random 10%,25%,50% from kinship,imputing by high heritable matrix for ef location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_h2_ef<- read.csv("./data/relmatrices/re_h2_ef.csv")
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_ef,remove_percent = 0.1,
+                        seed=345,rep=2)
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_ef,remove_percent = 0.25,
+                        seed=345,rep=2)
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_ef,remove_percent = 0.50,
+                        seed=345,rep=2)
+# ----replacing random 10%,25%,50% from kinship,imputing by high heritable matrix for mw location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_h2_mw<- read.csv("./data/relmatrices/re_h2_mw.csv")
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_mw,remove_percent = 0.1,
+                        seed=345,rep=2)
+
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_mw,remove_percent = 0.25,
+                        seed=345,rep=2)
+Gh2_2<- process_kinship(kin_matrix = kin, wave_matrix = re_h2_mw,remove_percent = 0.50,
+                        seed=345,rep=2)
+# ----replacing random 10%,25%,50% from kinship,imputing by wholewave matrix for joint location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_w_joint<- read.csv("./data/relmatrices/re_w_joint.csv")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_joint,remove_percent = 0.1,
+                        seed=345,rep=2, type= "WW")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_joint,remove_percent = 0.25,
+                        seed=345,rep=2, type= "WW")
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_joint,remove_percent = 0.50,
+                        seed=345,rep=2, type = "WW")
+# ----replacing random 10%,25%,50% from kinship,imputing by high heritable matrix for ef location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_w_ef<- read.csv("./data/relmatrices/re_w_ef.csv")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_ef,remove_percent = 0.1,
+                        seed=345,rep=2,type="WW")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_ef,remove_percent = 0.25,
+                        seed=345,rep=2, type = "WW")
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_ef,remove_percent = 0.50,
+                        seed=345,rep=2, type= "WW")
+# ----replacing random 10%,25%,50% from kinship,imputing by whole wave matrix for mw location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_w_mw<- read.csv("./data/relmatrices/re_w_mw.csv")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_mw,remove_percent = 0.1,
+                        seed=345,rep=2, type= "WW")
+
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_mw,remove_percent = 0.25,
+                        seed=345,rep=2, type="WW")
+GWW_2<- process_kinship(kin_matrix = kin, wave_matrix = re_w_mw,remove_percent = 0.50,
+                        seed=345,rep=2, type= "WW")
+# ----replacing random 10%,25%,50% from kinship,imputing by nirs matrix for joint location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_nirs_joint<- read.csv("./data/relmatrices/re_nirs_joint.csv")
+
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_joint,remove_percent = 0.1,
+                        seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_joint,remove_percent = 0.25,
+                          seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_joint,remove_percent = 0.50,
+                          seed=345,rep=2)
+
+# ----replacing random 10%,25%,50% from kinship,imputing by nirs matrix for ef location---------------------
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+re_nirs_ef<- read.csv("./data/relmatrices/re_nirs_ef.csv")
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_ef,remove_percent = 0.1,
+                          seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_ef,remove_percent = 0.25,
+                          seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_ef,remove_percent = 0.50,
+                          seed=345,rep=2)
+# ----replacing random 10%,25%,50% from kinship,imputing b nirs matrix for mw location---------------------
+re_nirs_mw<- read.csv("./data/relmatrices/re_nirs_mw.csv")
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_mw,remove_percent = 0.1,
+                          seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_mw,remove_percent = 0.25,
+                          seed=345,rep=2)
+Gnirs_2<- process_kinship(kin_matrix = kin, wave_matrix = re_nirs_mw,remove_percent = 0.50,
+                          seed=345,rep=2)
+
+
+#rep-3
+
 

@@ -42,7 +42,7 @@ crossv <- function(sort,
     gebv[[j]] <- gebv[[j]] %>%
       left_join(validation[,c("taxa", mytrait)]) %>%
       mutate(rep = j)
-    ac[j]<-cor(gebv[[j]][,2], gebv[[j]][,3], use = "complete.obs")
+    ac[j]<-cor(gebv[[j]][,2], gebv[[j]][,3], use = "complete.obs")              
   }
   gebv<- bind_rows(gebv, .id = "rep")
  write.csv(gebv, paste0("./output/", data, "/",  mytrait, "_", scheme, ".csv"),row.names=F)
@@ -80,31 +80,39 @@ create_folds<- function(individuals, nfolds, reps, seed = 123){
 
 #function for combine relationship matrix
 library(data.table)
-
-
-kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
-re_nirs_joint<- read.csv("./data/relmatrices/re_nirs_joint.csv")
 # Function to perform operations on kinship matrix and wholewave matrix
-process_kinship <- function(kin_matrix, 
-                            wave_matrix, 
+process_kinship <- function(kin_matrix = kin,
+                            wave_matrix = re_nirs_joint,
                             remove_percent,
-                            comb_matrix, 
                             seed=123,
-                            scheme,
-                            loc,
-                            percent) {
+                            rep,
+                            type= NULL) {
   set.seed(seed)
   N <- nrow(kin_matrix)
   remove <- sample(1:N, size = round(N * remove_percent))
-  wave_matrix <- kin_matrix
-  (paste0(comb_matrix))[remove, ] <- wave_matrix[remove, ]
-  comb_matrix[, remove] <- wave_matrix[, remove]
-  #write comb_matrix matrix to file
-  write.csv(comb_matrix, paste0("./data/relmatrices/", scheme, "/",loc, "/",percent,remove_percent * 100, ".csv"))
-  # Compute inverse of comb matrix
-  rownames(comb_matrix) <- colnames(comb_matrix)
-  Gb <- G.tuneup(G = as.matrix(comb_matrix), bend = TRUE, eig.tol = 1e-06)$Gb
+  greduced <- kin_matrix[-remove, -remove]
+  kin_matrix[remove, remove] <- wave_matrix[remove, remove]
+  if (is.null(type)) {
+    scheme <- deparse(substitute(wave_matrix))
+    scheme <- unlist(strsplit(scheme, "_"))
+    loc <- scheme[3]
+    type <- scheme[2]
+  }
+  write.csv(kin_matrix, paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep, ".csv"))
+  rownames(kin_matrix) <- colnames(kin_matrix)
+  Gb <- G.tuneup(G = as.matrix(kin_matrix), bend = TRUE, eig.tol = 1e-06)$Gb
   comb_matrixinv <- G.inverse(G = Gb, sparseform = TRUE)
-  # Save inverse of comb matrix to file
-   saveRDS(comb_matrixinv,paste0("./data/relmatrices/", scheme, "/",loc, "/",percent,remove_percent * 100, ".rds"))
+   saveRDS(comb_matrixinv,paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep,  ".rds"))
+    return(process_kinship)
+   }
+
+#function to calculate NRMSE
+calculate_nrmse <- function(observed, predicted) {
+  data <- data.frame(observed = observed, predicted = predicted)
+  #data$observed[is.na(data$observed)] <- data$predicted[is.na(data$observed)]
+  data<- na.omit(data)
+  rmse <- sqrt(mean((data$predicted - data$observed)^2))
+  range_response <- max(data$observed) - min(data$observed)
+  nrmse <- rmse / range_response
+  return(nrmse)
 }

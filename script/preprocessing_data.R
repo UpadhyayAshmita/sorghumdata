@@ -430,3 +430,13 @@ narea_mwef <-ggplot(narea_mwef, aes(x = models, y = accuracy, fill = models)) +
   scale_y_continuous("Prediction Accuracy", limits = c(0, 0.55), breaks = seq(0, 0.5, 0.1)) +
   theme(aspect.ratio = 0.7)
 ggsave("./figures/narea_mwef.png", plot = narea_mwef, width = 15, height = 6, units = "in")
+
+
+
+#compare model nrmse GBLUP, Gh2, GWW, Gnirs for 10% joint for narea
+GBLUP_reduced10<- read.csv("./output/GBLUP_reduced/narea_joint10.csv")
+GBLUP_reduced25<- read.csv("./output/GBLUP_reduced/narea_joint25.csv")
+GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/narea_joint50.csv")
+nrmse1<- calculate_nrmse(observed= GBLUP_reduced10$narea, predicted=GBLUP_reduced10$predicted.value)
+nrmse2<- calculate_nrmse(observed= GBLUP_reduced25$narea, predicted=GBLUP_reduced25$predicted.value)
+nrmse3<- calculate_nrmse(observed= GBLUP_reduced50$narea, predicted=GBLUP_reduced50$predicted.value)
