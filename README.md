@@ -8,7 +8,7 @@ This repository contains all the scripts and data used for the sorghum project.
 
 -   Relationship matrices created for different model and to run relationship matrix pipeline we need to create data/relmatrices/ and inside relmatrices we need to create folder GBLUP,Gh2, Gnirs, GWW. and inside Gh2, Gnirs and GWW folder we need to create ef, mw and joint and inside each location 10,25 and 50 folder.
 
--   All output in a folder
+-   All output in a folder. Inside output folder there
 
 -   R-script for the analysis for stage-1 and stage-2
 
@@ -45,9 +45,6 @@ This repository contains all the scripts and data used for the sorghum project.
 
     3.  NA Imputation script
 
-```{=html}
-<!-- -->
-```
 -   We have NA for several wavelength so we pass simpler model for those wavelength and impute the NA
 
 -   Likewise, we impute NA with the simpler heritability model for wavelength and have complete output from first stage of analysis
@@ -74,7 +71,7 @@ This repository contains all the scripts and data used for the sorghum project.
 
 -   We fit second stage model where we fit GBLUP model using kinship matrix for three different location for Narea and SLA and here we performed 5- fold cross-validation to assess the model performance where 20 repetition was performed and each repetition has 5 fold.
 
--    We obtained Genomic estimated breeding value(gebv) from the GBLUP model and the accuracy i.e., correlation between the predicted value and observed value in a validation set.
+-   We obtained Genomic estimated breeding value(gebv) from the GBLUP model and the accuracy i.e., correlation between the predicted value and observed value in a validation set.
 
 -   After, GBLUP we fitted NIRS, WW and highh2 model where we used blues from first stage for Narea and SLA and here we used relationship matrix we generated from waveblues. Then we obtained accuracy and gebv from the second stage NIRS, WW and highh2 model.
 
@@ -98,7 +95,7 @@ This repository contains all the scripts and data used for the sorghum project.
 
     7.  Second stage script
 
--    Using kinship matrix that had 10%, 25% and 50% individual removed we fit second stage model called GBLUP_reduced model (10%, 25% and 50% ) for three different location using blues from first stage for Narea and SLA where 5 fold cross validation was performed with 20 repetition.
+-   Using kinship matrix that had 10%, 25% and 50% individual removed we fit second stage model called GBLUP_reduced model (10%, 25% and 50% ) for three different location using blues from first stage for Narea and SLA where 5 fold cross validation was performed with 20 repetition.
 
 -   We fit second stage model called Gh2, Gnirs and GWW model using combined relationship matrix for 10%, 25% and 50% scheme for three different location
 

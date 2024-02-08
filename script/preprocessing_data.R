@@ -435,8 +435,340 @@ ggsave("./figures/narea_mwef.png", plot = narea_mwef, width = 15, height = 6, un
 
 #compare model nrmse GBLUP, Gh2, GWW, Gnirs for 10% joint for narea
 GBLUP_reduced10<- read.csv("./output/GBLUP_reduced/narea_joint10.csv")
+Gh2_10<- read.csv("./output/Gh2_joint_narea/narea_Gh2_10_joint.csv")
+Gnirs_10<- read.csv("./output/Gnirs_joint_narea/narea_Gnirs_10_joint.csv")
+GWW_10<- read.csv("./output/GWW_joint_narea/narea_GWW_10_joint.csv")
+nrmse_GBLUP<- calculate_nrmse(observed= GBLUP_reduced10$narea, predicted=GBLUP_reduced10$predicted.value)
+nrmse_Gh2<- calculate_nrmse(observed= Gh2_10$narea, predicted=Gh2_10$predicted.value)
+nrmse_Gnirs<- calculate_nrmse(observed= Gnirs_10$narea, predicted=Gnirs_10$predicted.value)
+nrmse_GWW<- calculate_nrmse(observed= GWW_10$narea, predicted=GWW_10$predicted.value)
+
+#25% for narea joint
 GBLUP_reduced25<- read.csv("./output/GBLUP_reduced/narea_joint25.csv")
+Gh2_25<- read.csv("./output/Gh2_joint_narea/narea_Gh2_25_joint.csv")
+Gnirs_25<- read.csv("./output/Gnirs_joint_narea/narea_Gnirs_25_joint.csv")
+GWW_25<- read.csv("./output/GWW_joint_narea/narea_GWW_25_joint.csv")
+nrmse_GBLUP<- calculate_nrmse(observed= GBLUP_reduced25$narea, predicted=GBLUP_reduced25$predicted.value)
+nrmse_Gh2<- calculate_nrmse(observed= Gh2_25$narea, predicted=Gh2_25$predicted.value)
+nrmse_Gnirs<- calculate_nrmse(observed= Gnirs_25$narea, predicted=Gnirs_25$predicted.value)
+nrmse_GWW<- calculate_nrmse(observed= GWW_25$narea, predicted=GWW_25$predicted.value)
+
+#50% for narea joint
 GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/narea_joint50.csv")
-nrmse1<- calculate_nrmse(observed= GBLUP_reduced10$narea, predicted=GBLUP_reduced10$predicted.value)
-nrmse2<- calculate_nrmse(observed= GBLUP_reduced25$narea, predicted=GBLUP_reduced25$predicted.value)
-nrmse3<- calculate_nrmse(observed= GBLUP_reduced50$narea, predicted=GBLUP_reduced50$predicted.value)
+Gh2_50<- read.csv("./output/Gh2_joint_narea/narea_Gh2_50_joint.csv")
+Gnirs_50<- read.csv("./output/Gnirs_joint_narea/narea_Gnirs_50_joint.csv")
+GWW_50<- read.csv("./output/GWW_joint_narea/narea_GWW_50_joint.csv")
+nrmse_GBLUP<- calculate_nrmse(observed= GBLUP_reduced50$narea, predicted=GBLUP_reduced50$predicted.value)
+nrmse_Gh2<- calculate_nrmse(observed= Gh2_50$narea, predicted=Gh2_50$predicted.value)
+nrmse_Gnirs<- calculate_nrmse(observed= Gnirs_50$narea, predicted=Gnirs_50$predicted.value)
+nrmse_GWW<- calculate_nrmse(observed= GWW_50$narea, predicted=GWW_50$predicted.value)
+
+
+
+
+
+#coincidence index for narea for 50%scheme for joint
+GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/sla_joint50.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GBLUP_reduced50$sla[GBLUP_reduced50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+Gh2_50 <- read.csv("./output/Gh2_joint_sla/sla_Gh2_50_joint.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gh2_50$sla[Gh2_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+Gnirs_50<- read.csv("./output/Gnirs_joint_sla/sla_Gnirs_50_joint.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gnirs_50$sla[Gnirs_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+GWW_50<- read.csv("./output/GWW_joint_sla/sla_GWW_50_joint.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GWW_50$sla[GWW_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+#coincidence index for narea mwef for 50%scheme 
+GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/narea_mwef50.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GBLUP_reduced50$narea[GBLUP_reduced50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+Gh2_50 <- read.csv("./output/Gh2_mwef_narea/narea_Gh2_50_mwef.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gh2_50$narea[Gh2_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+Gnirs_50<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_50_mwef.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gnirs_50$narea[Gnirs_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+GWW_50<- read.csv("./output/GWW_mwef_narea/narea_GWW_50_mwef.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GWW_50$narea[GWW_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  TO <- as.integer(n * threshold)
+  R <- as.integer(threshold * TO)
+  CIs[i] <- (B - R) / (TO - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+#coincidence index for sla for mwef at 50% scheme for all model
+GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/sla_mwef50.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GBLUP_reduced50$sla[GBLUP_reduced50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  TO <- as.integer(n * threshold)
+  R <- as.integer(threshold * TO)
+  CIs[i] <- (B - R) / (TO - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+
+Gh2_50 <- read.csv("./output/Gh2_mwef_sla/sla_Gh2_50_mwef.csv") %>% na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gh2_50$sla[Gh2_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  TO <- as.integer(n * threshold)
+  R <- as.integer(threshold * TO)
+  CIs[i] <- (B - R) / (TO - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+Gnirs_50<- read.csv("./output/Gnirs_mwef_sla/sla_Gnirs_50_mwef.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(Gnirs_50$sla[Gnirs_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  TO <- as.integer(n * threshold)
+  R <- as.integer(threshold * TO)
+  CIs[i] <- (B - R) / (TO - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+GWW_50<- read.csv("./output/GWW_mwef_sla/sla_GWW_50_mwef.csv") %>%  na.omit()
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
+  
+  obs_indices <- order(GWW_50$sla[GWW_50$rep == i], decreasing = T)
+  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  TO <- as.integer(n * threshold)
+  R <- as.integer(threshold * TO)
+  CIs[i] <- (B - R) / (TO - R)
+}
+CIs
+boxplot(CIs)
+mean(CIs)
+
+

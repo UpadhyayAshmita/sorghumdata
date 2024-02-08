@@ -116,3 +116,34 @@ calculate_nrmse <- function(observed, predicted) {
   nrmse <- rmse / range_response
   return(nrmse)
 }
+
+GWW_50<- read.csv("./output/GWW_joint_sla/sla_GWW_50_joint.csv") %>%  na.omit()
+
+#function for coincidence index 
+calculate_CI<- function(data,reps ){
+# parameters that are fixed
+threshold <- 0.2  # to select top x%
+reps <- 20
+# loop over each replication
+taxa_pred <- list()
+taxa_obs <- list()
+CIs <- c()
+for (i in 1:reps) {
+  pred_indices <- order(data$predicted.value[data$rep == i], decreasing = T)
+  n <- length(unique(pred_indices))  # total number of genotypes
+  topk <- as.integer(length(pred_indices) * threshold)
+  taxa_pred[[i]] <- unique(data$taxa[data$rep == i][pred_indices[1:topk]])
+  obs_indices <- order(data$sla[data$rep == i], decreasing = T)
+  taxa_obs[[i]] <- data$taxa[data$rep == i][obs_indices[1:topk]]
+  
+  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
+  R <- as.integer(threshold * topk)
+  CIs[i] <- (B - R) / (topk - R)
+}
+return(CIs)
+}
+
+CIs<- calculate_CI(GWW_50,reps = GWW_50$rep)
+CIs
+boxplot(CIs)
+mean(CIs)

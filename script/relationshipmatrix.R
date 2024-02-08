@@ -48,9 +48,8 @@ kin<- as.matrix(kin)
 # GINV <- G.inverse(G = Gb , sparseform = T)
 # saveRDS(GINV, file = "./data/relmatrices/GINV.rds")
 # GINV <- readRDS(file = "./data/relmatrices/GINV.rds")
-# ---------------------reading the data for wavelength with blues and wavelength that had na(which didn't converged)---------------------
 wavebluesEF_wider<- fread("./output/wavebluesEF_wider.csv")
-# ---------------------left joining corrected name with name2 from wavelength blues to filter individual that are also present in genotypic data ---------------------
+# left joining corrected name with name2 from wavelength blues to filter individual that are also present in genotypic data ---------------------
 Names_WEST<- fread("./data/Names_WEST_SF.csv", data.table = F)
 Names_WEST$Name2 <- gsub(" ", "", Names_WEST$Name2)
 colnames(Names_WEST)[2]<- "name2"
@@ -223,6 +222,47 @@ Gb <- G.tuneup(G = as.matrix(re_h2_joint), bend = TRUE, eig.tol = 1e-06)$Gb
 re_h2_joint_inv<- G.inverse(G = Gb , sparseform = T)
 saveRDS(re_h2_joint_inv, file = "./data/relmatrices/re_h2_joint_inv.rds")
 
+#removing 10%, 25% and 50% individual from kinship matrix
+kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
+# ---------------------10%---------------------
+set.seed(1)
+N <- nrow(kin)
+remove <- sample(1:N, size = round(N*0.1))
+# --------------------for GBLUP--------------------
+G10<- kin[-remove, ]
+G10<- G10[, -remove]
+G10 <- na.omit(G10)
+fwrite(G10, "./data/relmatrices/GBLUP/G10.csv", row.names = F)
+rownames(G10) <- colnames(G10)
+Gb <- G.tuneup(G = as.matrix(G10), bend = TRUE, eig.tol = 1e-06)$Gb
+G10inv<- G.inverse(G = Gb , sparseform = T)
+saveRDS(G10inv, file = "./data/relmatrices/GBLUP/G10inv.rds")
+# ---------------------25%---------------------
+set.seed(2)
+N <- nrow(kin)
+remove <- sample(1:N, size = round(N*0.25))
+# --------------------for GBLUP--------------------
+G25<- kin[-remove, ]
+G25<- G25[, -remove]
+G25 <- na.omit(G25)
+fwrite(G25, "./data/relmatrices/GBLUP/G25.csv", row.names = F)
+rownames(G25) <- colnames(G25)
+Gb <- G.tuneup(G = as.matrix(G25), bend = TRUE, eig.tol = 1e-06)$Gb
+G25inv<- G.inverse(G = Gb , sparseform = T)
+saveRDS(G25inv, file = "./data/relmatrices/GBLUP/G25inv.rds")
+# ---------------------50%---------------------
+set.seed(5)
+N <- nrow(kin)
+remove <- sample(1:N, size = round(N*0.50))
+# --------------------for GBLUP--------------------
+G50<- kin[-remove, ]
+G50<- G50[, -remove]
+G50 <- na.omit(G50)
+fwrite(G50, "./data/relmatrices/GBLUP/G50.csv", row.names = F)
+rownames(G50) <- colnames(G50)
+Gb <- G.tuneup(G = as.matrix(G50), bend = TRUE, eig.tol = 1e-06)$Gb
+G50inv<- G.inverse(G = Gb , sparseform = T)
+saveRDS(G50inv, file = "./data/relmatrices/GBLUP/G50inv.rds")
 # ----replacing random 10%,25%,50% from kinship and replacing 10% by high heritable matrix for joint location---------------------
 kin<- fread('./data/relmatrices/kinship_additive.txt', data.table= F)
 re_h2_joint<- read.csv("./data/relmatrices/re_h2_joint.csv")
@@ -231,15 +271,6 @@ set.seed(1)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.1))
 Gh2<- kin
-# --------------------for GBLUP--------------------
-G10<- kin[-remove, ]
-G10<- G10[, -remove]
-G10 <- na.omit(G10)
-fwrite(G10, "./data/relmatrices/GBLUP/joint/G10.csv", row.names = F)
-rownames(G10) <- colnames(G10)
-Gb <- G.tuneup(G = as.matrix(G10), bend = TRUE, eig.tol = 1e-06)$Gb
-G10inv_joint<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G10inv_joint, file = "./data/relmatrices/GBLUP/joint/G10inv_joint.rds")
 # --------------------imputing kin removed info with highh2 matrix---------------------
 Gh2[remove, ] <- re_h2_joint[remove, ]
 Gh2[,remove ] <- re_h2_joint[,remove]
@@ -255,15 +286,6 @@ set.seed(2)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.25))
 Gh2 <- kin
-# --------------------for GBLUP--------------------
-G25<- kin[-remove, ]
-G25<- G25[, -remove]
-G25 <- na.omit(G25)
-fwrite(G25, "./data/relmatrices/GBLUP/joint/G25.csv", row.names = F)
-rownames(G25) <- colnames(G25)
-Gb <- G.tuneup(G = as.matrix(G25), bend = TRUE, eig.tol = 1e-06)$Gb
-G25inv_joint<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G25inv_joint, file = "./data/relmatrices/GBLUP/joint/G25inv_joint.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_joint[remove, ]
 Gh2[,remove ] <- re_h2_joint[,remove]
@@ -278,15 +300,6 @@ set.seed(5)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.50))
 Gh2 <- kin
-# --------------------for GBLUP--------------------
-G50<- kin[-remove, ]
-G50<- G50[, -remove]
-G50 <- na.omit(G50)
-fwrite(G50, "./data/relmatrices/GBLUP/joint/G50.csv", row.names = F)
-rownames(G50) <- colnames(G50)
-Gb <- G.tuneup(G = as.matrix(G50), bend = TRUE, eig.tol = 1e-06)$Gb
-G50inv_joint<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G50inv_joint, file = "./data/relmatrices/GBLUP/joint/G50inv_joint.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_joint[remove, ]
 Gh2[,remove ] <- re_h2_joint[,remove]
@@ -303,20 +316,6 @@ re_h2_ef<- read.csv("./data/relmatrices/re_h2_ef.csv")
 set.seed(7)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.1))
-#--------------------for GBLUP--------------------
-dim(kin)
-G10<- kin[-remove, ]
-dim(G10)
-G10<- G10[, -remove]
-dim(G10)
-G10 <- na.omit(G10)
-dim(G10)
-
-fwrite(G10, "./data/relmatrices/GBLUP/ef/G10.csv", row.names = F)
-rownames(G10) <- colnames(G10)
-Gb <- G.tuneup(G = as.matrix(G10), bend = TRUE, eig.tol = 1e-06)$Gb
-G10inv_ef<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G10inv_ef, file = "./data/relmatrices/GBLUP/ef/G10inv_ef.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2<- kin
 Gh2[remove, ] <- re_h2_ef[remove, ]
@@ -332,16 +331,6 @@ set.seed(6)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.25))
 Gh2 <- kin
-# --------------------for GBLUP--------------------
-G25<- kin[-remove, ]
-G25<- G25[, -remove]
-G25 <- na.omit(G25)
-dim(G25)
-fwrite(G25, "./data/relmatrices/GBLUP/ef/G25.csv", row.names = F)
-rownames(G25) <- colnames(G25)
-Gb <- G.tuneup(G = as.matrix(G25), bend = TRUE, eig.tol = 1e-06)$Gb
-G25inv_ef<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G25inv_ef, file = "./data/relmatrices/GBLUP/ef/G25inv_ef.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_ef[remove, ]
 Gh2[,remove ] <- re_h2_ef[,remove]
@@ -357,17 +346,6 @@ set.seed(9)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.50))
 Gh2 <- kin
-
-# --------------------for GBLUP--------------------
-G50<- kin[-remove, ]
-dim(G50)
-G50<- G50[, -remove]
-G50 <- na.omit(G50)
-fwrite(G50, "./data/relmatrices/GBLUP/ef/G50.csv", row.names = F)
-rownames(G50) <- colnames(G50)
-Gb <- G.tuneup(G = as.matrix(G50), bend = TRUE, eig.tol = 1e-06)$Gb
-G50inv_ef<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G50inv_ef, file = "./data/relmatrices/GBLUP/ef/G50inv_ef.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_ef[remove, ]
 Gh2[,remove ] <- re_h2_ef[,remove]
@@ -384,15 +362,6 @@ re_h2_mw<- read.csv("./data/relmatrices/re_h2_mw.csv")
 set.seed(7)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.1))
-# --------------------for GBLUP--------------------
-G10<- kin[-remove, ]
-G10<- G10[, -remove]
-G10 <- na.omit(G10)
-fwrite(G10, "./data/relmatrices/GBLUP/mw/G10.csv", row.names = F)
-rownames(G10) <- colnames(G10)
-Gb <- G.tuneup(G = as.matrix(G10), bend = TRUE, eig.tol = 1e-06)$Gb
-G10inv_mw<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G10inv_mw, file = "./data/relmatrices/GBLUP/mw/G10inv_mw.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2<- kin
 Gh2[remove, ] <- re_h2_mw[remove, ]
@@ -408,15 +377,6 @@ set.seed(6)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.25))
 Gh2 <- kin
-# --------------------for GBLUP--------------------
-G25<- kin[-remove, ]
-G25<- G25[, -remove]
-G25 <- na.omit(G25)
-fwrite(G25, "./data/relmatrices/GBLUP/mw/G25.csv", row.names = F)
-rownames(G25) <- colnames(G25)
-Gb <- G.tuneup(G = as.matrix(G25), bend = TRUE, eig.tol = 1e-06)$Gb
-G25inv_mw<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G25inv_mw, file = "./data/relmatrices/GBLUP/mw/G25inv_mw.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_mw[remove, ]
 Gh2[,remove ] <- re_h2_mw[,remove]
@@ -431,15 +391,6 @@ set.seed(9)
 N <- nrow(kin)
 remove <- sample(1:N, size = round(N*0.50))
 Gh2 <- kin
-# --------------------for GBLUP--------------------
-G50<- kin[-remove, ]
-G50<- G50[, -remove]
-G50 <- na.omit(G50)
-fwrite(G50, "./data/relmatrices/GBLUP/mw/G50.csv", row.names = F)
-rownames(G50) <- colnames(G50)
-Gb <- G.tuneup(G = as.matrix(G50), bend = TRUE, eig.tol = 1e-06)$Gb
-G50inv_mw<- G.inverse(G = Gb , sparseform = T)
-saveRDS(G50inv_mw, file = "./data/relmatrices/GBLUP/mw/G50inv_mw.rds")
 # --------------------imputing kin removed info with high h2 matrix---------------------
 Gh2[remove, ] <- re_h2_mw[remove, ]
 Gh2[,remove ] <- re_h2_mw[,remove]
