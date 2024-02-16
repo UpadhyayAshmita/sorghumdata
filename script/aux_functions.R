@@ -117,33 +117,60 @@ calculate_nrmse <- function(observed, predicted) {
   return(nrmse)
 }
 
-GWW_50<- read.csv("./output/GWW_joint_sla/sla_GWW_50_joint.csv") %>%  na.omit()
-
-#function for coincidence index 
-calculate_CI<- function(data,reps ){
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(data$predicted.value[data$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(data$taxa[data$rep == i][pred_indices[1:topk]])
-  obs_indices <- order(data$sla[data$rep == i], decreasing = T)
-  taxa_obs[[i]] <- data$taxa[data$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-return(CIs)
+#function for coincidence index within a model
+calculate_CI <- function(data, trait) {
+  # parameters that are fixed
+  reps <- length(unique(data$rep))
+  threshold <- 0.2  # to select top x%
+  # loop over each replication
+  CIs <- c()
+  for (i in 1:reps) {
+    temp_data <- data %>% filter(rep == i) %>% arrange(desc(predicted.value))
+    n <- nrow(temp_data)  # total number of genotypes
+    topk <- ceiling(n * threshold)
+    # Extract top taxa for prediction
+    taxa_pred <- temp_data[1:topk, ]
+    # Sort by trait for observation
+    temp_data <- temp_data %>% arrange(desc(!!sym(trait)))
+    # Extract top taxa for observation
+    taxa_obs <- temp_data[1:topk, ]
+    B <- length(intersect(taxa_pred$taxa, taxa_obs$taxa))
+    R <- as.integer(threshold * topk)
+    CIs[i] <- (B - R) / (topk - R)
+  }
+  return(CIs)
 }
 
-CIs<- calculate_CI(GWW_50,reps = GWW_50$rep)
-CIs
-boxplot(CIs)
-mean(CIs)
+calculate_CIs <- function(data1, data2) {
+  # parameters that are fixed
+  reps <- length(unique(data1$rep))
+  threshold <- 0.2  # to select top x%
+  # loop over each replication
+  CIs <- c()
+  for (i in 1:reps) {
+    # Filter data by replication
+    temp_data1 <- data1 %>% filter(rep == i) %>% arrange(desc(predicted.value))
+    temp_data2 <- data2 %>% filter(rep == i) %>% arrange(desc(predicted.value))
+    
+    n1 <- nrow(temp_data1)  # total number of genotypes in dataset 1
+    n2 <- nrow(temp_data2)  # total number of genotypes in dataset 2
+    
+    topk1 <- ceiling(n1 * threshold)  # Top x% of genotypes in dataset 1
+    topk2 <- ceiling(n2 * threshold)  # Top x% of genotypes in dataset 2
+    
+    # Extract top taxa for prediction from dataset 1
+    taxa_pred1 <- temp_data1[1:topk1, ]
+    
+    # Extract top taxa for prediction from dataset 2
+    taxa_pred2 <- temp_data2[1:topk2, ]
+    
+    # Calculate the coincidence index (CI) between the two datasets
+    B <- length(intersect(taxa_pred1$taxa, taxa_pred2$taxa))
+    R <- as.integer(threshold * min(topk1, topk2))
+    CIs[i] <- (B - R) / (min(topk1, topk2) - R)
+  }
+  return(CIs)
+}
+
+
+
