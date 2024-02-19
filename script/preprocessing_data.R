@@ -96,7 +96,7 @@ joint_narea_plot<- ggplot(narea_accuracy_joint, aes(x = models, y = accuracy,
                                 limits=c(-0.2,0.55), breaks=c(0, 0.25, 0.5))
 
 
-#visualizing different accuracy of each model of joint location for sla
+#visualizing different accuracy of each model of joint location for narea
 corr_S_wholewave_joint<-read.csv("./output/wholewave/corr_S_wholewave_joint.csv") %>%
   rename(wholewave= result_S_wholewave_joint.ac)
 corr_S_highh2_joint<- read.csv("./output/highh2/corr_S_highh2_joint.csv")%>%
@@ -106,11 +106,11 @@ corr_S_nirs_joint<- read.csv("./output/NIRS/corr_S_nirs_joint.csv")%>%
 corr_S_joint<-read.csv("./output/GBLUP/corr_S_joint.csv")%>% 
   rename( GBLUP= result_S.ac)
 
-sla_accuracy_joint<- bind_cols(corr_S_joint,corr_S_nirs_joint,
+narea_accuracy_joint<- bind_cols(corr_S_joint,corr_S_nirs_joint,
                                corr_S_highh2_joint,corr_S_wholewave_joint)%>% 
   pivot_longer(cols = 1:4,names_to = "models", values_to = "accuracy")
 # Create a boxplot
-joint_sla_plot<- ggplot(sla_accuracy_joint, aes(x = models, y = accuracy, 
+joint_narea_plot<- ggplot(narea_accuracy_joint, aes(x = models, y = accuracy, 
                                                 fill = models)) +
   geom_boxplot() +
   labs(title = "Boxplot of prediction Accuracy for joint loc for sla",
@@ -463,312 +463,493 @@ nrmse_Gh2<- calculate_nrmse(observed= Gh2_50$narea, predicted=Gh2_50$predicted.v
 nrmse_Gnirs<- calculate_nrmse(observed= Gnirs_50$narea, predicted=Gnirs_50$predicted.value)
 nrmse_GWW<- calculate_nrmse(observed= GWW_50$narea, predicted=GWW_50$predicted.value)
 
+#selecting topk ind from loc ef and mw by reading blues from first stage
+selected_lines<- read.csv("./data/selected_lines.csv")
+slablues_mw_correct<- fread("./output/traitsoutput/slablues_mw_correct.csv", data.table = F)%>% 
+  filter(slablues_mw_correct$taxa %in% selected_lines$x) %>% 
+  mutate(taxa = factor(taxa))%>% rename("sla"= predicted.value)
+nareablues_mw_correct<- fread("./output/traitsoutput/nareablues_mw_correct.csv", data.table = F)%>% 
+  filter(nareablues_mw_correct$taxa %in% selected_lines$x) %>% 
+  mutate(taxa = factor(taxa))%>% rename("narea"= predicted.value)
+slablues_ef_correct<- fread("./output/traitsoutput/slablues_ef_correct.csv", data.table = F)%>%
+  filter(slablues_ef_correct$taxa %in% selected_lines$x) %>% 
+  mutate(taxa = factor(taxa))%>% rename("sla"= predicted.value)
+nareablues_ef_correct<- fread("./output/traitsoutput/nareablues_ef_correct.csv", data.table = F)%>% 
+  filter(nareablues_ef_correct$taxa %in% selected_lines$x) %>% 
+  mutate(taxa = factor(taxa)) %>% rename("narea"= predicted.value)
+
+#selecting top20%indv and their means for narea ef from GBLUP_efmw
+GBLUP_efmw_narea<- read.csv("./output/GBLUP/narea_efmw.csv")
+GBLUP_efmw_narea<- top_selected(data= GBLUP_efmw_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_efmw_narea$result_top_taxa), each = length(GBLUP_efmw_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_efmw_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_efmw_narea$result_mean_value),
+                      mean_value = GBLUP_efmw_narea$result_mean_value)
+GBLUP_topn_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUP_topn_efmw,"./output/selected/GBLUP_topn_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from GBLUP_mwef
+GBLUP_mwef_narea<- read.csv("./output/GBLUP/narea_mwef.csv")
+GBLUP_mwef_narea<- top_selected(data= GBLUP_mwef_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_mwef_narea$result_top_taxa), each = length(GBLUP_mwef_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_mwef_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_mwef_narea$result_mean_value),
+                      mean_value = GBLUP_mwef_narea$result_mean_value)
+GBLUP_topn_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUP_topn_mwef,"./output/selected/GBLUP_topn_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from GBLUP_efmw
+GBLUP_efmw_sla<- read.csv("./output/GBLUP/sla_efmw.csv")
+GBLUP_efmw_sla<- top_selected(data= GBLUP_efmw_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_efmw_sla$result_top_taxa), each = length(GBLUP_efmw_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_efmw_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_efmw_sla$result_mean_value),
+                      mean_value = GBLUP_efmw_sla$result_mean_value)
+GBLUP_tops_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUP_tops_efmw,"./output/selected/GBLUP_tops_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from GBLUP_mwef
+GBLUP_mwef_sla<- read.csv("./output/GBLUP/sla_mwef.csv")
+GBLUP_mwef_sla<- top_selected(data= GBLUP_mwef_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_mwef_sla$result_top_taxa), each = length(GBLUP_mwef_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_mwef_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_mwef_sla$result_mean_value),
+                      mean_value = GBLUP_mwef_sla$result_mean_value)
+GBLUP_tops_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUP_tops_mwef,"./output/selected/GBLUP_tops_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from Gh2_efmw
+Gh2_efmw10_sla<- read.csv("./output/Gh2_efmw_sla/sla_Gh2_10_efmw.csv")
+Gh2_efmw10_sla<- top_selected(data= Gh2_efmw10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw10_sla$result_top_taxa), each = length(Gh2_efmw10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw10_sla$result_mean_value),
+                      mean_value = Gh2_efmw10_sla$result_mean_value)
+Gh2_tops10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops10_efmw,"./output/selected/Gh2_tops10_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gh2_mwef
+Gh2_mwef10_sla<- read.csv("./output/Gh2_mwef_sla/sla_Gh2_10_mwef.csv")
+Gh2_mwef10_sla<- top_selected(data= Gh2_mwef10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef10_sla$result_top_taxa), each = length(Gh2_mwef10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef10_sla$result_mean_value),
+                      mean_value = Gh2_efmw10_sla$result_mean_value)
+Gh2_tops10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops10_mwef,"./output/selected/Gh2_tops10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from Gh2_efmw
+Gh2_efmw25_sla<- read.csv("./output/Gh2_efmw_sla/sla_Gh2_25_efmw.csv")
+Gh2_efmw25_sla<- top_selected(data= Gh2_efmw25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw25_sla$result_top_taxa), each = length(Gh2_efmw25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw25_sla$result_mean_value),
+                      mean_value = Gh2_efmw25_sla$result_mean_value)
+Gh2_tops25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops25_efmw,"./output/selected/Gh2_tops25_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gh2_mwef
+Gh2_mwef25_sla<- read.csv("./output/Gh2_mwef_sla/sla_Gh2_25_mwef.csv")
+Gh2_mwef25_sla<- top_selected(data= Gh2_mwef25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef25_sla$result_top_taxa), each = length(Gh2_mwef25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef25_sla$result_mean_value),
+                      mean_value = Gh2_efmw25_sla$result_mean_value)
+Gh2_tops25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops25_mwef,"./output/selected/Gh2_tops25_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from Gh2_efmw
+Gh2_efmw50_sla<- read.csv("./output/Gh2_efmw_sla/sla_Gh2_50_efmw.csv")
+Gh2_efmw50_sla<- top_selected(data= Gh2_efmw50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw50_sla$result_top_taxa), each = length(Gh2_efmw50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw50_sla$result_mean_value),
+                      mean_value = Gh2_efmw50_sla$result_mean_value)
+Gh2_tops50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops50_efmw,"./output/selected/Gh2_tops50_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gh2_mwef
+Gh2_mwef50_sla<- read.csv("./output/Gh2_mwef_sla/sla_Gh2_50_mwef.csv")
+Gh2_mwef50_sla<- top_selected(data= Gh2_mwef50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef50_sla$result_top_taxa), each = length(Gh2_mwef50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef50_sla$result_mean_value),
+                      mean_value = Gh2_efmw50_sla$result_mean_value)
+Gh2_tops50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_tops50_mwef,"./output/selected/Gh2_tops50_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea ef from Gh2_efmw
+Gh2_efmw10_narea<- read.csv("./output/Gh2_efmw_narea/narea_Gh2_10_efmw.csv")
+Gh2_efmw10_narea<- top_selected(data= Gh2_efmw10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw10_narea$result_top_taxa), each = length(Gh2_efmw10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw10_narea$result_mean_value),
+                      mean_value = Gh2_efmw10_narea$result_mean_value)
+Gh2_topn10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn10_efmw,"./output/selected/Gh2_topn10_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gh2_mwef
+Gh2_mwef10_narea<- read.csv("./output/Gh2_mwef_narea/narea_Gh2_10_mwef.csv")
+Gh2_mwef10_narea<- top_selected(data= Gh2_mwef10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef10_narea$result_top_taxa), each = length(Gh2_mwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef10_narea$result_mean_value),
+                      mean_value = Gh2_efmw10_narea$result_mean_value)
+Gh2_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn10_mwef,"./output/selected/Gh2_topn10_mwef.csv", row.names=F)
+
+
+
+#selecting top20%indv and their means for narea ef from Gh2_efmw
+Gh2_efmw25_narea<- read.csv("./output/Gh2_efmw_narea/narea_Gh2_25_efmw.csv")
+Gh2_efmw25_narea<- top_selected(data= Gh2_efmw25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw25_narea$result_top_taxa), each = length(Gh2_efmw25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw25_narea$result_mean_value),
+                      mean_value = Gh2_efmw25_narea$result_mean_value)
+Gh2_topn25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn25_efmw,"./output/selected/Gh2_topn25_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gh2_mwef
+Gh2_mwef25_narea<- read.csv("./output/Gh2_mwef_narea/narea_Gh2_25_mwef.csv")
+Gh2_mwef25_narea<- top_selected(data= Gh2_mwef25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef25_narea$result_top_taxa), each = length(Gh2_mwef25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef25_narea$result_mean_value),
+                      mean_value = Gh2_efmw25_narea$result_mean_value)
+Gh2_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn25_mwef,"./output/selected/Gh2_topn25_mwef.csv", row.names=F)
+
+#
+#selecting top20%indv and their means for narea ef from Gh2_efmw
+Gh2_efmw50_narea<- read.csv("./output/Gh2_efmw_narea/narea_Gh2_50_efmw.csv")
+Gh2_efmw50_narea<- top_selected(data= Gh2_efmw50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_efmw50_narea$result_top_taxa), each = length(Gh2_efmw50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_efmw50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_efmw50_narea$result_mean_value),
+                      mean_value = Gh2_efmw50_narea$result_mean_value)
+Gh2_topn50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn50_efmw,"./output/selected/Gh2_topn50_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gh2_mwef
+Gh2_mwef50_narea<- read.csv("./output/Gh2_mwef_narea/narea_Gh2_50_mwef.csv")
+Gh2_mwef50_narea<- top_selected(data= Gh2_mwef50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gh2_mwef50_narea$result_top_taxa), each = length(Gh2_mwef50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gh2_mwef50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gh2_mwef50_narea$result_mean_value),
+                      mean_value = Gh2_efmw50_narea$result_mean_value)
+Gh2_topn50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gh2_topn50_mwef,"./output/selected/Gh2_topn50_mwef.csv", row.names=F)
 
 
 
 
-#coincidence index for narea for 50%scheme for joint
-GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/sla_joint50.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GBLUP_reduced50$sla[GBLUP_reduced50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#GWW selected individual
 
-Gh2_50 <- read.csv("./output/Gh2_joint_sla/sla_Gh2_50_joint.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gh2_50$sla[Gh2_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla ef from GWW efmw
+GWW_efmw10_sla<- read.csv("./output/GWW_efmw_sla/sla_GWW_10_efmw.csv")
+GWW_efmw10_sla<- top_selected(data= GWW_efmw10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw10_sla$result_top_taxa), each = length(GWW_efmw10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw10_sla$result_mean_value),
+                      mean_value = GWW_efmw10_sla$result_mean_value)
+GWW_tops10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops10_efmw,"./output/selected/GWW_tops10_efmw.csv", row.names=F)
 
-Gnirs_50<- read.csv("./output/Gnirs_joint_sla/sla_Gnirs_50_joint.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gnirs_50$sla[Gnirs_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla mw from GWW_mwef
+GWW_mwef10_sla<- read.csv("./output/GWW_mwef_sla/sla_GWW_10_mwef.csv")
+GWW_mwef10_sla<- top_selected(data= GWW_mwef10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef10_sla$result_top_taxa), each = length(GWW_mwef10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef10_sla$result_mean_value),
+                      mean_value = GWW_efmw10_sla$result_mean_value)
+GWW_tops10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops10_mwef,"./output/selected/GWW_tops10_mwef.csv", row.names=F)
 
-GWW_50<- read.csv("./output/GWW_joint_sla/sla_GWW_50_joint.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GWW_50$sla[GWW_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla ef from GWW_efmw
+GWW_efmw25_sla<- read.csv("./output/GWW_efmw_sla/sla_GWW_25_efmw.csv")
+GWW_efmw25_sla<- top_selected(data= GWW_efmw25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw25_sla$result_top_taxa), each = length(GWW_efmw25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw25_sla$result_mean_value),
+                      mean_value = GWW_efmw25_sla$result_mean_value)
+GWW_tops25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops25_efmw,"./output/selected/GWW_tops25_efmw.csv", row.names=F)
 
-#coincidence index for narea mwef for 50%scheme 
-GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/narea_mwef50.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GBLUP_reduced50$narea[GBLUP_reduced50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla mw from GWW_mwef
+GWW_mwef25_sla<- read.csv("./output/GWW_mwef_sla/sla_GWW_25_mwef.csv")
+GWW_mwef25_sla<- top_selected(data= GWW_mwef25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef25_sla$result_top_taxa), each = length(GWW_mwef25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef25_sla$result_mean_value),
+                      mean_value = GWW_efmw25_sla$result_mean_value)
+GWW_tops25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops25_mwef,"./output/selected/GWW_tops25_mwef.csv", row.names=F)
 
-Gh2_50 <- read.csv("./output/Gh2_mwef_narea/narea_Gh2_50_mwef.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gh2_50$narea[Gh2_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla ef from GWW_efmw
+GWW_efmw50_sla<- read.csv("./output/GWW_efmw_sla/sla_GWW_50_efmw.csv")
+GWW_efmw50_sla<- top_selected(data= GWW_efmw50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw50_sla$result_top_taxa), each = length(GWW_efmw50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw50_sla$result_mean_value),
+                      mean_value = GWW_efmw50_sla$result_mean_value)
+GWW_tops50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops50_efmw,"./output/selected/GWW_tops50_efmw.csv", row.names=F)
 
-Gnirs_50<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_50_mwef.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gnirs_50$narea[Gnirs_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  R <- as.integer(threshold * topk)
-  CIs[i] <- (B - R) / (topk - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for sla mw from GWW_mwef
+GWW_mwef50_sla<- read.csv("./output/GWW_mwef_sla/sla_GWW_50_mwef.csv")
+GWW_mwef50_sla<- top_selected(data= GWW_mwef50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef50_sla$result_top_taxa), each = length(GWW_mwef50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef50_sla$result_mean_value),
+                      mean_value = GWW_efmw50_sla$result_mean_value)
+GWW_tops50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_tops50_mwef,"./output/selected/GWW_tops50_mwef.csv", row.names=F)
 
-GWW_50<- read.csv("./output/GWW_mwef_narea/narea_GWW_50_mwef.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GWW_50$narea[GWW_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  TO <- as.integer(n * threshold)
-  R <- as.integer(threshold * TO)
-  CIs[i] <- (B - R) / (TO - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for narea ef from GWW_efmw
+GWW_efmw10_narea<- read.csv("./output/GWW_efmw_narea/narea_GWW_10_efmw.csv")
+GWW_efmw10_narea<- top_selected(data= GWW_efmw10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw10_narea$result_top_taxa), each = length(GWW_efmw10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw10_narea$result_mean_value),
+                      mean_value = GWW_efmw10_narea$result_mean_value)
+GWW_topn10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn10_efmw,"./output/selected/GWW_topn10_efmw.csv", row.names=F)
 
-#coincidence index for sla for mwef at 50% scheme for all model
-GBLUP_reduced50<- read.csv("./output/GBLUP_reduced/sla_mwef50.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GBLUP_reduced50$predicted.value[GBLUP_reduced50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GBLUP_reduced50$sla[GBLUP_reduced50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GBLUP_reduced50$taxa[GBLUP_reduced50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  TO <- as.integer(n * threshold)
-  R <- as.integer(threshold * TO)
-  CIs[i] <- (B - R) / (TO - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
+#selecting top20%indv and their means for narea mw from GWW_mwef
+GWW_mwef10_narea<- read.csv("./output/GWW_mwef_narea/narea_GWW_10_mwef.csv")
+GWW_mwef10_narea<- top_selected(data= GWW_mwef10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef10_narea$result_top_taxa), each = length(GWW_mwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef10_narea$result_mean_value),
+                      mean_value = GWW_efmw10_narea$result_mean_value)
+GWW_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn10_mwef,"./output/selected/GWW_topn10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from GWW_mwef
+GWW_mwef10_narea<- read.csv("./output/GWW_mwef_narea/narea_GWW_10_mwef.csv")
+GWW_mwef10_narea<- top_selected(data= GWW_mwef10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef10_narea$result_top_taxa), each = length(GWW_mwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef10_narea$result_mean_value),
+                      mean_value = GWW_efmw10_narea$result_mean_value)
+GWW_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn10_mwef,"./output/selected/GWW_topn10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea ef from GWW_efmw
+GWW_efmw25_narea<- read.csv("./output/GWW_efmw_narea/narea_GWW_25_efmw.csv")
+GWW_efmw25_narea<- top_selected(data= GWW_efmw25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw25_narea$result_top_taxa), each = length(GWW_efmw25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw25_narea$result_mean_value),
+                      mean_value = GWW_efmw25_narea$result_mean_value)
+GWW_topn25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn25_efmw,"./output/selected/GWW_topn25_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from GWW_mwef
+GWW_mwef25_narea<- read.csv("./output/GWW_mwef_narea/narea_GWW_25_mwef.csv")
+GWW_mwef25_narea<- top_selected(data= GWW_mwef25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef25_narea$result_top_taxa), each = length(GWW_mwef25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef25_narea$result_mean_value),
+                      mean_value = GWW_efmw25_narea$result_mean_value)
+GWW_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn25_mwef,"./output/selected/GWW_topn25_mwef.csv", row.names=F)
+
+#
+#selecting top20%indv and their means for narea ef from GWW_efmw
+GWW_efmw50_narea<- read.csv("./output/GWW_efmw_narea/narea_GWW_50_efmw.csv")
+GWW_efmw50_narea<- top_selected(data= GWW_efmw50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_efmw50_narea$result_top_taxa), each = length(GWW_efmw50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_efmw50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_efmw50_narea$result_mean_value),
+                      mean_value = GWW_efmw50_narea$result_mean_value)
+GWW_topn50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn50_efmw,"./output/selected/GWW_topn50_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from GWW_mwef
+GWW_mwef50_narea<- read.csv("./output/GWW_mwef_narea/narea_GWW_50_mwef.csv")
+GWW_mwef50_narea<- top_selected(data= GWW_mwef50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(GWW_mwef50_narea$result_top_taxa), each = length(GWW_mwef50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GWW_mwef50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GWW_mwef50_narea$result_mean_value),
+                      mean_value = GWW_efmw50_narea$result_mean_value)
+GWW_topn50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GWW_topn50_mwef,"./output/selected/GWW_topn50_mwef.csv", row.names=F)
+
+#Gnirs individual selection
+#selecting top20%indv and their means for sla ef from Gnirs efmw
+Gnirs_efmw10_sla<- read.csv("./output/Gnirs_efmw_sla/sla_Gnirs_10_efmw.csv")
+Gnirs_efmw10_sla<- top_selected(data= Gnirs_efmw10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw10_sla$result_top_taxa), each = length(Gnirs_efmw10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw10_sla$result_mean_value),
+                      mean_value = Gnirs_efmw10_sla$result_mean_value)
+Gnirs_tops10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops10_efmw,"./output/selected/Gnirs_tops10_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gnirs_mwef
+Gnirs_mwef10_sla<- read.csv("./output/Gnirs_mwef_sla/sla_Gnirs_10_mwef.csv")
+Gnirs_mwef10_sla<- top_selected(data= Gnirs_mwef10_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef10_sla$result_top_taxa), each = length(Gnirs_mwef10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef10_sla$result_mean_value),
+                      mean_value = Gnirs_efmw10_sla$result_mean_value)
+Gnirs_tops10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops10_mwef,"./output/selected/Gnirs_tops10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from Gnirs_efmw
+Gnirs_efmw25_sla<- read.csv("./output/Gnirs_efmw_sla/sla_Gnirs_25_efmw.csv")
+Gnirs_efmw25_sla<- top_selected(data= Gnirs_efmw25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw25_sla$result_top_taxa), each = length(Gnirs_efmw25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw25_sla$result_mean_value),
+                      mean_value = Gnirs_efmw25_sla$result_mean_value)
+Gnirs_tops25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops25_efmw,"./output/selected/Gnirs_tops25_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gnirs_mwef
+Gnirs_mwef25_sla<- read.csv("./output/Gnirs_mwef_sla/sla_Gnirs_25_mwef.csv")
+Gnirs_mwef25_sla<- top_selected(data= Gnirs_mwef25_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef25_sla$result_top_taxa), each = length(Gnirs_mwef25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef25_sla$result_mean_value),
+                      mean_value = Gnirs_efmw25_sla$result_mean_value)
+Gnirs_tops25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops25_mwef,"./output/selected/Gnirs_tops25_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for sla ef from Gnirs_efmw
+Gnirs_efmw50_sla<- read.csv("./output/Gnirs_efmw_sla/sla_Gnirs_50_efmw.csv")
+Gnirs_efmw50_sla<- top_selected(data= Gnirs_efmw50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw50_sla$result_top_taxa), each = length(Gnirs_efmw50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw50_sla$result_mean_value),
+                      mean_value = Gnirs_efmw50_sla$result_mean_value)
+Gnirs_tops50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops50_efmw,"./output/selected/Gnirs_tops50_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for sla mw from Gnirs_mwef
+Gnirs_mwef50_sla<- read.csv("./output/Gnirs_mwef_sla/sla_Gnirs_50_mwef.csv")
+Gnirs_mwef50_sla<- top_selected(data= Gnirs_mwef50_sla)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef50_sla$result_top_taxa), each = length(Gnirs_mwef50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef50_sla$result_mean_value),
+                      mean_value = Gnirs_efmw50_sla$result_mean_value)
+Gnirs_tops50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_tops50_mwef,"./output/selected/Gnirs_tops50_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea ef from Gnirs_efmw
+Gnirs_efmw10_narea<- read.csv("./output/Gnirs_efmw_narea/narea_Gnirs_10_efmw.csv")
+Gnirs_efmw10_narea<- top_selected(data= Gnirs_efmw10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw10_narea$result_top_taxa), each = length(Gnirs_efmw10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw10_narea$result_mean_value),
+                      mean_value = Gnirs_efmw10_narea$result_mean_value)
+Gnirs_topn10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn10_efmw,"./output/selected/Gnirs_topn10_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gnirs_mwef
+Gnirs_mwef10_narea<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_10_mwef.csv")
+Gnirs_mwef10_narea<- top_selected(data= Gnirs_mwef10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef10_narea$result_top_taxa), each = length(Gnirs_mwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef10_narea$result_mean_value),
+                      mean_value = Gnirs_efmw10_narea$result_mean_value)
+Gnirs_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn10_mwef,"./output/selected/Gnirs_topn10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gnirs_mwef
+Gnirs_mwef10_narea<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_10_mwef.csv")
+Gnirs_mwef10_narea<- top_selected(data= Gnirs_mwef10_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef10_narea$result_top_taxa), each = length(Gnirs_mwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef10_narea$result_mean_value),
+                      mean_value = Gnirs_efmw10_narea$result_mean_value)
+Gnirs_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn10_mwef,"./output/selected/Gnirs_topn10_mwef.csv", row.names=F)
+
+#selecting top20%indv and their means for narea ef from Gnirs_efmw
+Gnirs_efmw25_narea<- read.csv("./output/Gnirs_efmw_narea/narea_Gnirs_25_efmw.csv")
+Gnirs_efmw25_narea<- top_selected(data= Gnirs_efmw25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw25_narea$result_top_taxa), each = length(Gnirs_efmw25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw25_narea$result_mean_value),
+                      mean_value = Gnirs_efmw25_narea$result_mean_value)
+Gnirs_topn25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn25_efmw,"./output/selected/Gnirs_topn25_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gnirs_mwef
+Gnirs_mwef25_narea<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_25_mwef.csv")
+Gnirs_mwef25_narea<- top_selected(data= Gnirs_mwef25_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef25_narea$result_top_taxa), each = length(Gnirs_mwef25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef25_narea$result_mean_value),
+                      mean_value = Gnirs_efmw25_narea$result_mean_value)
+Gnirs_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn25_mwef,"./output/selected/Gnirs_topn25_mwef.csv", row.names=F)
+
+#
+#selecting top20%indv and their means for narea ef from Gnirs_efmw
+Gnirs_efmw50_narea<- read.csv("./output/Gnirs_efmw_narea/narea_Gnirs_50_efmw.csv")
+Gnirs_efmw50_narea<- top_selected(data= Gnirs_efmw50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_efmw50_narea$result_top_taxa), each = length(Gnirs_efmw50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_efmw50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_efmw50_narea$result_mean_value),
+                      mean_value = Gnirs_efmw50_narea$result_mean_value)
+Gnirs_topn50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn50_efmw,"./output/selected/Gnirs_topn50_efmw.csv", row.names=F)
+
+#selecting top20%indv and their means for narea mw from Gnirs_mwef
+Gnirs_mwef50_narea<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_50_mwef.csv")
+Gnirs_mwef50_narea<- top_selected(data= Gnirs_mwef50_narea)
+#extracting mean and selected individual in a dataframe per replication
+selected_df <- data.frame(rep = rep(seq_along(Gnirs_mwef50_narea$result_top_taxa), each = length(Gnirs_mwef50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(Gnirs_mwef50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(Gnirs_mwef50_narea$result_mean_value),
+                      mean_value = Gnirs_efmw50_narea$result_mean_value)
+Gnirs_topn50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(Gnirs_topn50_mwef,"./output/selected/Gnirs_topn50_mwef.csv", row.names=F)
 
 
-Gh2_50 <- read.csv("./output/Gh2_mwef_sla/sla_Gh2_50_mwef.csv") %>% na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gh2_50$predicted.value[Gh2_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gh2_50$taxa[Gh2_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gh2_50$sla[Gh2_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gh2_50$taxa[Gh2_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  TO <- as.integer(n * threshold)
-  R <- as.integer(threshold * TO)
-  CIs[i] <- (B - R) / (TO - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
 
-Gnirs_50<- read.csv("./output/Gnirs_mwef_sla/sla_Gnirs_50_mwef.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(Gnirs_50$predicted.value[Gnirs_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(Gnirs_50$taxa[Gnirs_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(Gnirs_50$sla[Gnirs_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- Gnirs_50$taxa[Gnirs_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  TO <- as.integer(n * threshold)
-  R <- as.integer(threshold * TO)
-  CIs[i] <- (B - R) / (TO - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
-
-GWW_50<- read.csv("./output/GWW_mwef_sla/sla_GWW_50_mwef.csv") %>%  na.omit()
-# parameters that are fixed
-threshold <- 0.2  # to select top x%
-reps <- 20
-# loop over each replication
-taxa_pred <- list()
-taxa_obs <- list()
-CIs <- c()
-for (i in 1:reps) {
-  pred_indices <- order(GWW_50$predicted.value[GWW_50$rep == i], decreasing = T)
-  n <- length(unique(pred_indices))  # total number of genotypes
-  topk <- as.integer(length(pred_indices) * threshold)
-  taxa_pred[[i]] <- unique(GWW_50$taxa[GWW_50$rep == i][pred_indices[1:topk]])
-  
-  obs_indices <- order(GWW_50$sla[GWW_50$rep == i], decreasing = T)
-  taxa_obs[[i]] <- GWW_50$taxa[GWW_50$rep == i][obs_indices[1:topk]]
-  
-  B <- length(intersect(taxa_pred[[i]], taxa_obs[[i]]))
-  TO <- as.integer(n * threshold)
-  R <- as.integer(threshold * TO)
-  CIs[i] <- (B - R) / (TO - R)
-}
-CIs
-boxplot(CIs)
-mean(CIs)
-
-library(dplyr)
