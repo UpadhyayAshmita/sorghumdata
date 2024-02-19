@@ -478,6 +478,42 @@ nareablues_ef_correct<- fread("./output/traitsoutput/nareablues_ef_correct.csv",
   filter(nareablues_ef_correct$taxa %in% selected_lines$x) %>% 
   mutate(taxa = factor(taxa)) %>% rename("narea"= predicted.value)
 
+#top 20% indv for slablues ef
+temp_data <- slablues_ef_correct %>% arrange(desc(sla)) %>% na.omit()
+n1 <- nrow(temp_data)  # total number of genotypes in data 
+topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+taxa_blues <- temp_data[1:topk1, ]
+mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#313.773366 
+top_taxa_names <- taxa_blues$taxa
+write.csv(top_taxa_names, "./output/selected/top_slablues_ef.csv")
+
+#top 20% indv for slablues mw
+temp_data <- slablues_mw_correct %>% arrange(desc(sla)) %>% na.omit()
+n1 <- nrow(temp_data)  # total number of genotypes in data 
+topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+taxa_blues <- temp_data[1:topk1, ]
+mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#313.773366 
+top_taxa_names <- taxa_blues$taxa
+write.csv(top_taxa_names, "./output/selected/top_slablues_mw.csv")
+
+#top 20% indv for nareablues ef
+temp_data <- nareablues_ef_correct %>% arrange(desc(narea)) %>% na.omit()
+n1 <- nrow(temp_data)  # total number of genotypes in data 
+topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+taxa_blues <- temp_data[1:topk1, ]
+mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.5888 
+top_taxa_names <- taxa_blues$taxa
+write.csv(top_taxa_names, "./output/selected/top_nareablues_ef.csv")
+
+#top 20% indv for nareablues mw
+temp_data <- nareablues_mw_correct %>% arrange(desc(narea)) %>% na.omit()
+n1 <- nrow(temp_data)  # total number of genotypes in data 
+topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+taxa_blues <- temp_data[1:topk1, ]
+mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.58034
+top_taxa_names <- taxa_blues$taxa
+write.csv(top_taxa_names, "./output/selected/top_nareablues_mw.csv")
+
 #selecting top20%indv and their means for narea ef from GBLUP_efmw
 GBLUP_efmw_narea<- read.csv("./output/GBLUP/narea_efmw.csv")
 GBLUP_efmw_narea<- top_selected(data= GBLUP_efmw_narea)
@@ -633,8 +669,6 @@ mean_df <- data.frame(rep = seq_along(Gh2_mwef25_narea$result_mean_value),
                       mean_value = Gh2_efmw25_narea$result_mean_value)
 Gh2_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
 write.csv(Gh2_topn25_mwef,"./output/selected/Gh2_topn25_mwef.csv", row.names=F)
-
-#
 #selecting top20%indv and their means for narea ef from Gh2_efmw
 Gh2_efmw50_narea<- read.csv("./output/Gh2_efmw_narea/narea_Gh2_50_efmw.csv")
 Gh2_efmw50_narea<- top_selected(data= Gh2_efmw50_narea)
@@ -661,7 +695,6 @@ write.csv(Gh2_topn50_mwef,"./output/selected/Gh2_topn50_mwef.csv", row.names=F)
 
 
 #GWW selected individual
-
 #selecting top20%indv and their means for sla ef from GWW efmw
 GWW_efmw10_sla<- read.csv("./output/GWW_efmw_sla/sla_GWW_10_efmw.csv")
 GWW_efmw10_sla<- top_selected(data= GWW_efmw10_sla)
@@ -783,7 +816,6 @@ mean_df <- data.frame(rep = seq_along(GWW_mwef25_narea$result_mean_value),
 GWW_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
 write.csv(GWW_topn25_mwef,"./output/selected/GWW_topn25_mwef.csv", row.names=F)
 
-#
 #selecting top20%indv and their means for narea ef from GWW_efmw
 GWW_efmw50_narea<- read.csv("./output/GWW_efmw_narea/narea_GWW_50_efmw.csv")
 GWW_efmw50_narea<- top_selected(data= GWW_efmw50_narea)
