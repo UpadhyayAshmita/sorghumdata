@@ -466,37 +466,41 @@ nrmse_GWW<- calculate_nrmse(observed= GWW_50$narea, predicted=GWW_50$predicted.v
 #selecting topk ind from loc ef and mw by reading blues from first stage
 #top 20% indv for slablues ef and their mean
 temp_data <- slablues_ef_correct %>% arrange(desc(sla)) %>% na.omit()
+num_indv<- 165
 n1 <- nrow(temp_data)  # total number of genotypes in data 
-topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+topk1 <- min(n1, num_indv)  # Select minimum of 165 and the number of genotypes
 taxa_blues <- temp_data[1:topk1, ]
-mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#313.773366 
+mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#309.0880
 top_taxa_names <- taxa_blues$taxa
 write.csv(top_taxa_names, "./output/selected/top_slablues_ef.csv")
 
 #top 20% indv for slablues mw and their mean
 temp_data <- slablues_mw_correct %>% arrange(desc(sla)) %>% na.omit()
+num_indv<- 165
 n1 <- nrow(temp_data)  # total number of genotypes in data 
-topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+topk1 <- min(n1, num_indv)  # Select minimum of 165 and the number of genotypes
 taxa_blues <- temp_data[1:topk1, ]
-mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#313.773366 
+mean_value <- mean(taxa_blues[["sla"]], na.rm = TRUE)#312.0316
 top_taxa_names <- taxa_blues$taxa
 write.csv(top_taxa_names, "./output/selected/top_slablues_mw.csv")
 
 #top 20% indv for nareablues ef and their mean
 temp_data <- nareablues_ef_correct %>% arrange(desc(narea)) %>% na.omit()
+num_indv<- 165
 n1 <- nrow(temp_data)  # total number of genotypes in data 
-topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+topk1 <- min(n1, num_indv)  # Select minimum of 165 and the number of genotypes
 taxa_blues <- temp_data[1:topk1, ]
-mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.5888 
+mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.5611
 top_taxa_names <- taxa_blues$taxa
 write.csv(top_taxa_names, "./output/selected/top_nareablues_ef.csv")
 
 #top 20% indv for nareablues mw and their mean
 temp_data <- nareablues_mw_correct %>% arrange(desc(narea)) %>% na.omit()
+num_indv<- 165
 n1 <- nrow(temp_data)  # total number of genotypes in data 
-topk1 <- ceiling(n1 * 0.2)  # Top x% of genotypes in dataset
+topk1 <- min(n1, num_indv)  # Select minimum of 165 and the number of genotypes
 taxa_blues <- temp_data[1:topk1, ]
-mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.58034
+mean_value <- mean(taxa_blues[["narea"]], na.rm = TRUE)#1.56841
 top_taxa_names <- taxa_blues$taxa
 write.csv(top_taxa_names, "./output/selected/top_nareablues_mw.csv")
 
@@ -935,7 +939,7 @@ mean_df <- data.frame(rep = seq_along(Gnirs_efmw25_narea$result_mean_value),
 Gnirs_topn25_efmw <- merge(selected_df, mean_df, by = "rep")
 write.csv(Gnirs_topn25_efmw,"./output/selected/Gnirs_topn25_efmw.csv", row.names=F)
 
-#selecting top20%indv and their means for narea mw from Gnirs_mwef
+#selecting top 165 indv and their means for narea mw from Gnirs_mwef
 Gnirs_mwef25_narea<- read.csv("./output/Gnirs_mwef_narea/narea_Gnirs_25_mwef.csv")
 Gnirs_mwef25_narea<- top_selected(data= Gnirs_mwef25_narea)
 #extracting mean and selected individual in a dataframe per replication
@@ -968,6 +972,130 @@ mean_df <- data.frame(rep = seq_along(Gnirs_mwef50_narea$result_mean_value),
                       mean_value = Gnirs_efmw50_narea$result_mean_value)
 Gnirs_topn50_mwef <- merge(selected_df, mean_df, by = "rep")
 write.csv(Gnirs_topn50_mwef,"./output/selected/Gnirs_topn50_mwef.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced 
+GBLUP_redefmw10_narea<- read.csv("./output/GBLUP_reduced/narea_efmw10.csv") %>% na.omit()
+GBLUP_redefmw10_narea<- top_selected(data= GBLUP_redefmw10_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw10_narea$result_top_taxa), each = length(GBLUP_redefmw10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw10_narea$result_mean_value),
+                      mean_value = GBLUP_redefmw10_narea$result_mean_value)
+GBLUPred_topn10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_topn10_efmw,"./output/selected/GBLUPred_topn10_efmw.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for 25 and 50%
+GBLUP_redefmw25_narea<- read.csv("./output/GBLUP_reduced/narea_efmw25.csv") %>% na.omit()
+GBLUP_redefmw25_narea<- top_selected(data= GBLUP_redefmw25_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw25_narea$result_top_taxa), each = length(GBLUP_redefmw25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw25_narea$result_mean_value),
+                      mean_value = GBLUP_redefmw25_narea$result_mean_value)
+GBLUPred_topn25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_topn25_efmw,"./output/selected/GBLUPred_topn25_efmw.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for ef and 50%
+GBLUP_redefmw50_narea<- read.csv("./output/GBLUP_reduced/narea_efmw50.csv") %>% na.omit()
+GBLUP_redefmw50_narea<- top_selected(data= GBLUP_redefmw50_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw50_narea$result_top_taxa), each = length(GBLUP_redefmw50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw50_narea$result_mean_value),
+                      mean_value = GBLUP_redefmw50_narea$result_mean_value)
+GBLUPred_topn50_efmw <- merge(selected_df, mean_df, by = "rep")
+
+
+#selecting top 165 indv from GBLUP reduced 
+GBLUP_redmwef10_narea<- read.csv("./output/GBLUP_reduced/narea_mwef10.csv") %>% na.omit()
+GBLUP_redmwef10_narea<- top_selected(data= GBLUP_redmwef10_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef10_narea$result_top_taxa), each = length(GBLUP_redmwef10_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef10_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef10_narea$result_mean_value),
+                      mean_value = GBLUP_redmwef10_narea$result_mean_value)
+GBLUPred_topn10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_topn10_mwef,"./output/selected/GBLUPred_topn10_mwef.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for 25 and 50%
+GBLUP_redmwef25_narea<- read.csv("./output/GBLUP_reduced/narea_mwef25.csv") %>% na.omit()
+GBLUP_redmwef25_narea<- top_selected(data= GBLUP_redmwef25_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef25_narea$result_top_taxa), each = length(GBLUP_redmwef25_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef25_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef25_narea$result_mean_value),
+                      mean_value = GBLUP_redmwef25_narea$result_mean_value)
+GBLUPred_topn25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_topn25_mwef,"./output/selected/GBLUPred_topn25_mwef.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for ef and 50%
+GBLUP_redmwef50_narea<- read.csv("./output/GBLUP_reduced/narea_mwef50.csv") %>% na.omit()
+GBLUP_redmwef50_narea<- top_selected(data= GBLUP_redmwef50_narea)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef50_narea$result_top_taxa), each = length(GBLUP_redmwef50_narea$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef50_narea$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef50_narea$result_mean_value),
+                      mean_value = GBLUP_redmwef50_narea$result_mean_value)
+GBLUPred_topn50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_topn50_mwef,"./output/selected/GBLUPred_topn50_mwef.csv", row.names=F)
+
+#selecting top 165 indv from GBLUP reduced 
+GBLUP_redmwef10_sla<- read.csv("./output/GBLUP_reduced/sla_mwef10.csv") %>% na.omit()
+GBLUP_redmwef10_sla<- top_selected(data= GBLUP_redmwef10_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef10_sla$result_top_taxa), each = length(GBLUP_redmwef10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef10_sla$result_mean_value),
+                      mean_value = GBLUP_redmwef10_sla$result_mean_value)
+GBLUPred_tops10_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops10_mwef,"./output/selected/GBLUPred_tops10_mwef.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for 25 and 50%
+GBLUP_redmwef25_sla<- read.csv("./output/GBLUP_reduced/sla_mwef25.csv") %>% na.omit()
+GBLUP_redmwef25_sla<- top_selected(data= GBLUP_redmwef25_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef25_sla$result_top_taxa), each = length(GBLUP_redmwef25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef25_sla$result_mean_value),
+                      mean_value = GBLUP_redmwef25_sla$result_mean_value)
+GBLUPred_tops25_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops25_mwef,"./output/selected/GBLUPred_tops25_mwef.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for ef and 50%
+GBLUP_redmwef50_sla<- read.csv("./output/GBLUP_reduced/sla_mwef50.csv") %>% na.omit()
+GBLUP_redmwef50_sla<- top_selected(data= GBLUP_redmwef50_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redmwef50_sla$result_top_taxa), each = length(GBLUP_redmwef50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redmwef50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redmwef50_sla$result_mean_value),
+                      mean_value = GBLUP_redmwef50_sla$result_mean_value)
+GBLUPred_tops50_mwef <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops50_mwef,"./output/selected/GBLUPred_tops50_mwef.csv", row.names=F)
+
+
+#selecting top 165 indv from GBLUP reduced 
+GBLUP_redefmw10_sla<- read.csv("./output/GBLUP_reduced/sla_efmw10.csv") %>% na.omit()
+GBLUP_redefmw10_sla<- top_selected(data= GBLUP_redefmw10_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw10_sla$result_top_taxa), each = length(GBLUP_redefmw10_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw10_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw10_sla$result_mean_value),
+                      mean_value = GBLUP_redefmw10_sla$result_mean_value)
+GBLUPred_tops10_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops10_efmw,"./output/selected/GBLUPred_tops10_efmw.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for 25 and 50%
+GBLUP_redefmw25_sla<- read.csv("./output/GBLUP_reduced/sla_efmw25.csv") %>% na.omit()
+GBLUP_redefmw25_sla<- top_selected(data= GBLUP_redefmw25_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw25_sla$result_top_taxa), each = length(GBLUP_redefmw25_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw25_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw25_sla$result_mean_value),
+                      mean_value = GBLUP_redefmw25_sla$result_mean_value)
+GBLUPred_tops25_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops25_efmw,"./output/selected/GBLUPred_tops25_efmw.csv", row.names=F)
+#selecting top 165 indv from GBLUP reduced for ef and 50%
+GBLUP_redefmw50_sla<- read.csv("./output/GBLUP_reduced/sla_efmw50.csv") %>% na.omit()
+GBLUP_redefmw50_sla<- top_selected(data= GBLUP_redefmw50_sla)
+#extracting mean and selected individual in a data frame per replication
+selected_df <- data.frame(rep = rep(seq_along(GBLUP_redefmw50_sla$result_top_taxa), each = length(GBLUP_redefmw50_sla$result_top_taxa[[1]])),
+                          taxa = unlist(GBLUP_redefmw50_sla$result_top_taxa))
+mean_df <- data.frame(rep = seq_along(GBLUP_redefmw50_sla$result_mean_value),
+                      mean_value = GBLUP_redefmw50_sla$result_mean_value)
+GBLUPred_tops50_efmw <- merge(selected_df, mean_df, by = "rep")
+write.csv(GBLUPred_tops50_efmw,"./output/selected/GBLUPred_tops50_efmw.csv", row.names=F)
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc ef
 top_nareablues_ef<- read.csv("./output/selected/top_nareablues_ef.csv")
@@ -975,24 +1103,26 @@ GBLUP_topn_efmw<-read.csv("./output/selected/GBLUP_topn_efmw.csv")
 Gh2_topn10_efmw<- read.csv("./output/selected/Gh2_topn10_efmw.csv")
 GWW_topn10_efmw<- read.csv("./output/selected/GWW_topn10_efmw.csv")
 Gnirs_topn10_efmw<- read.csv("./output/selected/Gnirs_topn10_efmw.csv")
-
-#plotting the mean comparison of selected individual in all model
+GBLUPred_topn10_efmw<- read.csv("./output/selected/GBLUPred_topn10_efmw.csv")
 # Combine the datasets vertically
 mean_ef_narea10 <- bind_rows(
   mutate(Gh2_topn10_efmw, Model = "Gh2"),
   mutate(Gnirs_topn10_efmw, Model = "Gnirs"),
   mutate(GWW_topn10_efmw, Model = "WW"),
-  mutate(GBLUP_topn_efmw, Model = "GBLUP")
+  mutate(GBLUP_topn_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_topn10_efmw, Model= "GBLUPred")
 )
 
-bluesef_narea= 1.58034
+bluesef_narea= 1.5611
 # Plot the combined data
 ggplot(mean_ef_narea10, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for narea 10 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 10% scheme") +
   theme_minimal() 
+
+
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc ef
 top_nareablues_ef<- read.csv("./output/selected/top_nareablues_ef.csv")
@@ -1000,23 +1130,24 @@ GBLUP_topn_efmw<-read.csv("./output/selected/GBLUP_topn_efmw.csv")
 Gh2_topn25_efmw<- read.csv("./output/selected/Gh2_topn25_efmw.csv")
 GWW_topn25_efmw<- read.csv("./output/selected/GWW_topn25_efmw.csv")
 Gnirs_topn25_efmw<- read.csv("./output/selected/Gnirs_topn25_efmw.csv")
-
+GBLUPred_topn25_efmw<- read.csv("./output/selected/GBLUPred_topn25_efmw.csv")
 #plotting the mean comparison of selected individual in all model
 # Combine the datasets vertically
 mean_ef_narea25 <- bind_rows(
   mutate(Gh2_topn25_efmw, Model = "Gh2"),
   mutate(Gnirs_topn25_efmw, Model = "Gnirs"),
   mutate(GWW_topn25_efmw, Model = "WW"),
-  mutate(GBLUP_topn_efmw, Model = "GBLUP")
+  mutate(GBLUP_topn_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_topn25_efmw, Model= "GBLUPred")
 )
 
-bluesef_narea= 1.58034
+bluesef_narea= 1.5611
 # Plot the combined data
 ggplot(mean_ef_narea25, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for narea 25 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 25 scheme") +
   theme_minimal() 
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc ef
@@ -1025,6 +1156,7 @@ GBLUP_topn_efmw<-read.csv("./output/selected/GBLUP_topn_efmw.csv")
 Gh2_topn50_efmw<- read.csv("./output/selected/Gh2_topn50_efmw.csv")
 GWW_topn50_efmw<- read.csv("./output/selected/GWW_topn50_efmw.csv")
 Gnirs_topn50_efmw<- read.csv("./output/selected/Gnirs_topn50_efmw.csv")
+GBLUPred_topn50_efmw<- read.csv("./output/selected/GBLUPred_topn50_efmw.csv")
 
 #plotting the mean comparison of selected individual in all model
 
@@ -1033,16 +1165,17 @@ mean_ef_narea50 <- bind_rows(
   mutate(Gh2_topn50_efmw, Model = "Gh2"),
   mutate(Gnirs_topn50_efmw, Model = "Gnirs"),
   mutate(GWW_topn50_efmw, Model = "WW"),
-  mutate(GBLUP_topn_efmw, Model = "GBLUP")
+  mutate(GBLUP_topn_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_topn50_efmw, Model= "GBLUPred")
 )
 
-bluesef_narea= 1.58034
+bluesef_narea= 1.5611
 # Plot the combined data
 ggplot(mean_ef_narea50, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for narea 50 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 50 scheme") +
   theme_minimal() 
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc ef
@@ -1051,6 +1184,7 @@ GBLUP_tops_efmw<-read.csv("./output/selected/GBLUP_tops_efmw.csv")
 Gh2_tops10_efmw<- read.csv("./output/selected/Gh2_tops10_efmw.csv")
 GWW_tops10_efmw<- read.csv("./output/selected/GWW_tops10_efmw.csv")
 Gnirs_tops10_efmw<- read.csv("./output/selected/Gnirs_tops10_efmw.csv")
+GBLUPred_tops10_efmw<- read.csv("./output/selected/GBLUPred_tops10_efmw.csv")
 
 #plotting the mean comparison of selected individual in all model
 # Combine the datasets vertically
@@ -1058,16 +1192,17 @@ mean_ef_sla10 <- bind_rows(
   mutate(Gh2_tops10_efmw, Model = "Gh2"),
   mutate(Gnirs_tops10_efmw, Model = "Gnirs"),
   mutate(GWW_tops10_efmw, Model = "WW"),
-  mutate(GBLUP_tops_efmw, Model = "GBLUP")
+  mutate(GBLUP_tops_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_tops10_efmw, Model="GBLUPred")
 )
 
-bluesef_sla= 313.77
+bluesef_sla= 309.088
 # Plot the combined data
 ggplot(mean_ef_sla10, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_sla, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for sla 10 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for sla 10 scheme") +
   theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.), breaks = seq(1.4, 1.5, 1.6))
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc ef
@@ -1076,6 +1211,7 @@ GBLUP_tops_efmw<-read.csv("./output/selected/GBLUP_tops_efmw.csv")
 Gh2_tops25_efmw<- read.csv("./output/selected/Gh2_tops25_efmw.csv")
 GWW_tops25_efmw<- read.csv("./output/selected/GWW_tops25_efmw.csv")
 Gnirs_tops25_efmw<- read.csv("./output/selected/Gnirs_tops25_efmw.csv")
+GBLUPred_tops25_efmw<- read.csv("./output/selected/GBLUPred_tops25_efmw.csv")
 
 #plotting the mean comparison of selected individual in all model
 # Combine the datasets vertically
@@ -1083,16 +1219,17 @@ mean_ef_sla25 <- bind_rows(
   mutate(Gh2_tops25_efmw, Model = "Gh2"),
   mutate(Gnirs_tops25_efmw, Model = "Gnirs"),
   mutate(GWW_tops25_efmw, Model = "WW"),
-  mutate(GBLUP_tops_efmw, Model = "GBLUP")
+  mutate(GBLUP_tops_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_tops25_efmw, Model= "GBLUPred")
 )
 
-bluesef_sla= 313.7733
+bluesef_sla= 309.088
 # Plot the combined data
 ggplot(mean_ef_sla25, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_sla, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for sla 25 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for sla 25 scheme") +
   theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.4, 1.6), breaks = seq(1.4, 1.5, 1.6))
 
 #comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc ef
@@ -1101,6 +1238,7 @@ GBLUP_tops_efmw<-read.csv("./output/selected/GBLUP_tops_efmw.csv")
 Gh2_tops50_efmw<- read.csv("./output/selected/Gh2_tops50_efmw.csv")
 GWW_tops50_efmw<- read.csv("./output/selected/GWW_tops50_efmw.csv")
 Gnirs_tops50_efmw<- read.csv("./output/selected/Gnirs_tops50_efmw.csv")
+GBLUPred_tops50_efmw<- read.csv("./output/selected/GBLUPred_tops50_efmw.csv")
 
 #plotting the mean comparison of selected individual in all model
 # Combine the datasets vertically
@@ -1108,15 +1246,180 @@ mean_ef_sla50 <- bind_rows(
   mutate(Gh2_tops50_efmw, Model = "Gh2"),
   mutate(Gnirs_tops50_efmw, Model = "Gnirs"),
   mutate(GWW_tops50_efmw, Model = "WW"),
-  mutate(GBLUP_tops_efmw, Model = "GBLUP")
+  mutate(GBLUP_tops_efmw, Model = "GBLUP"),
+  mutate(GBLUPred_tops50_efmw, Model= "GBLUPred")
 )
 
-bluesef_sla= 313.7733
+bluesef_sla= 309.088
 # Plot the combined data
 ggplot(mean_ef_sla50, aes(x = Model, y = mean_value)) +
   geom_boxplot() +
   geom_hline(yintercept = bluesef_sla, linetype = "dashed", color = "blue") +
   labs(x = "Model", y = "Mean Value") +
-  ggtitle("Comparison of Model Performance against BLUES for sla 50 scheme") +
+  ggtitle("Comparison of Model Performance against BLUES ef for sla 50 scheme") +
   theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.4, 1.6), breaks = seq(1.4, 1.5, 1.6))
 
+#comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc mw
+top_slablues_mw<- read.csv("./output/selected/top_slablues_mw.csv")
+GBLUP_tops_mwef<-read.csv("./output/selected/GBLUP_tops_mwef.csv")
+Gh2_tops10_mwef<- read.csv("./output/selected/Gh2_tops10_mwef.csv")
+GWW_tops10_mwef<- read.csv("./output/selected/GWW_tops10_mwef.csv")
+Gnirs_tops10_mwef<- read.csv("./output/selected/Gnirs_tops10_mwef.csv")
+GBLUPred_tops10_mwef<- read.csv("./output/selected/GBLUPred_tops10_mwef.csv")
+
+
+#plotting the mean comparison of selected individual in all model
+# Combine the datasets vertically
+mean_mw_sla10 <- bind_rows(
+  mutate(Gh2_tops10_mwef, Model = "Gh2"),
+  mutate(Gnirs_tops10_mwef, Model = "Gnirs"),
+  mutate(GWW_tops10_mwef, Model = "WW"),
+  mutate(GBLUP_tops_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_tops10_mwef, Model="GBLUPred")
+)
+
+bluesmw_sla= 312.0316
+# Plot the combined data
+ggplot(mean_mw_sla10, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesmw_sla, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES mw for sla 10 scheme") +
+  theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.), breaks = seq(1.4, 1.5, 1.6))
+
+#comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc mw
+top_slablues_mw<- read.csv("./output/selected/top_slablues_mw.csv")
+GBLUP_tops_mwef<-read.csv("./output/selected/GBLUP_tops_mwef.csv")
+Gh2_tops25_mwef<- read.csv("./output/selected/Gh2_tops25_mwef.csv")
+GWW_tops25_mwef<- read.csv("./output/selected/GWW_tops25_mwef.csv")
+Gnirs_tops25_mwef<- read.csv("./output/selected/Gnirs_tops25_mwef.csv")
+GBLUPred_tops25_mwef<- read.csv("./output/selected/GBLUPred_tops25_mwef.csv")
+
+#plotting the mean comparison of selected individual in all model
+# Combine the datasets 
+mean_mw_sla25 <- bind_rows(
+  mutate(Gh2_tops25_mwef, Model = "Gh2"),
+  mutate(Gnirs_tops25_mwef, Model = "Gnirs"),
+  mutate(GWW_tops25_mwef, Model = "WW"),
+  mutate(GBLUP_tops_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_tops25_mwef, Model="GBLUPred")
+)
+
+bluesmw_sla= 312.0316
+# Plot the combined data
+ggplot(mean_mw_sla25, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesmw_sla, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES ef for sla 25 scheme") +
+  theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.4, 1.6), breaks = seq(1.4, 1.5, 1.6))
+
+#comparing the mean of top selected indv of GBLUP vs Gh2 for sla for loc mw
+top_slablues_mw<- read.csv("./output/selected/top_slablues_mw.csv")
+GBLUP_tops_mwef<-read.csv("./output/selected/GBLUP_tops_mwef.csv")
+Gh2_tops50_mwef<- read.csv("./output/selected/Gh2_tops50_mwef.csv")
+GWW_tops50_mwef<- read.csv("./output/selected/GWW_tops50_mwef.csv")
+Gnirs_tops50_mwef<- read.csv("./output/selected/Gnirs_tops50_mwef.csv")
+GBLUPred_tops50_mwef<- read.csv("./output/selected/GBLUPred_tops50_mwef.csv")
+
+#plotting the mean comparison of selected individual in all model
+# Combine the datasets vertically
+mean_mw_sla50 <- bind_rows(
+  mutate(Gh2_tops50_mwef, Model = "Gh2"),
+  mutate(Gnirs_tops50_mwef, Model = "Gnirs"),
+  mutate(GWW_tops50_mwef, Model = "WW"),
+  mutate(GBLUP_tops_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_tops50_mwef, Model="GBLUPred")
+)
+
+bluesmw_sla= 312.0316
+# Plot the combined data
+ggplot(mean_mw_sla50, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesmw_sla, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES mw for sla 50 scheme") +
+  theme_minimal() # scale_y_continuous("Mean Value", limits = c(1.4, 1.6), breaks = seq(1.4, 1.5, 1.6))
+
+
+
+#comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc mw
+top_nareablues_mw<- read.csv("./output/selected/top_nareablues_mw.csv")
+GBLUP_topn_mwef<-read.csv("./output/selected/GBLUP_topn_mwef.csv")
+Gh2_topn10_mwef<- read.csv("./output/selected/Gh2_topn10_mwef.csv")
+GWW_topn10_mwef<- read.csv("./output/selected/GWW_topn10_mwef.csv")
+Gnirs_topn10_mwef<- read.csv("./output/selected/Gnirs_topn10_mwef.csv")
+GBLUPred_topn10_mwef<- read.csv("./output/selected/GBLUPred_topn10_mwef.csv")
+# Combine the datasets vertically
+mean_mw_narea10 <- bind_rows(
+  mutate(Gh2_topn10_mwef, Model = "Gh2"),
+  mutate(Gnirs_topn10_mwef, Model = "Gnirs"),
+  mutate(GWW_topn10_mwef, Model = "WW"),
+  mutate(GBLUP_topn_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_topn10_mwef, Model= "GBLUPred")
+)
+
+bluesmw_narea= 1.56841
+# Plot the combined data
+ggplot(mean_mw_narea10, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 10% scheme") +
+  theme_minimal() 
+
+
+
+#comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc ef
+top_nareablues_mw<- read.csv("./output/selected/top_nareablues_mw.csv")
+GBLUP_topn_mwef<-read.csv("./output/selected/GBLUP_topn_mwef.csv")
+Gh2_topn25_mwef<- read.csv("./output/selected/Gh2_topn25_mwef.csv")
+GWW_topn25_mwef<- read.csv("./output/selected/GWW_topn25_mwef.csv")
+Gnirs_topn25_mwef<- read.csv("./output/selected/Gnirs_topn25_mwef.csv")
+GBLUPred_topn25_mwef<- read.csv("./output/selected/GBLUPred_topn25_mwef.csv")
+#plotting the mean comparison of selected individual in all model
+# Combine the datasets vertically
+mean_mw_narea25 <- bind_rows(
+  mutate(Gh2_topn25_mwef, Model = "Gh2"),
+  mutate(Gnirs_topn25_mwef, Model = "Gnirs"),
+  mutate(GWW_topn25_mwef, Model = "WW"),
+  mutate(GBLUP_topn_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_topn25_mwef, Model= "GBLUPred")
+)
+
+bluesmw_narea= 1.5611
+# Plot the combined data
+ggplot(mean_mw_narea25, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 25 scheme") +
+  theme_minimal() 
+
+#comparing the mean of top selected indv of GBLUP vs Gh2 for narea for loc ef
+top_nareablues_mw<- read.csv("./output/selected/top_nareablues_mw.csv")
+GBLUP_topn_mwef<-read.csv("./output/selected/GBLUP_topn_mwef.csv")
+Gh2_topn50_mwef<- read.csv("./output/selected/Gh2_topn50_mwef.csv")
+GWW_topn50_mwef<- read.csv("./output/selected/GWW_topn50_mwef.csv")
+Gnirs_topn50_mwef<- read.csv("./output/selected/Gnirs_topn50_mwef.csv")
+GBLUPred_topn50_mwef<- read.csv("./output/selected/GBLUPred_topn50_mwef.csv")
+
+#plotting the mean comparison of selected individual in all model
+
+# Combine the datasets vertically
+mean_mw_narea50 <- bind_rows(
+  mutate(Gh2_topn50_mwef, Model = "Gh2"),
+  mutate(Gnirs_topn50_mwef, Model = "Gnirs"),
+  mutate(GWW_topn50_mwef, Model = "WW"),
+  mutate(GBLUP_topn_mwef, Model = "GBLUP"),
+  mutate(GBLUPred_topn50_mwef, Model= "GBLUPred")
+)
+
+bluesmw_narea= 1.5611
+# Plot the combined data
+ggplot(mean_mw_narea50, aes(x = Model, y = mean_value)) +
+  geom_boxplot() +
+  geom_hline(yintercept = bluesef_narea, linetype = "dashed", color = "blue") +
+  labs(x = "Model", y = "Mean Value") +
+  ggtitle("Comparison of Model Performance against BLUES ef for narea 50 scheme") +
+  theme_minimal() 

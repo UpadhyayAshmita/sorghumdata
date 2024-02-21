@@ -171,18 +171,19 @@ calculate_CIs <- function(data1, data2) {
   return(CIs)
 }
 
+
 top_selected <- function(data) {
   reps <- length(unique(data$rep))
-  threshold <- 0.2 
+  num_indv <- 165  # Fixed number of individuals to select
   result_top_taxa <- list() # Initialize empty lists to store results
   result_mean_value <- numeric()
-  for (i in 1:20)# Loop over each replication
-  {
+  
+  for (i in 1:20) { # Loop over each replication
     temp_data <- data %>% filter(rep == i) %>% arrange(desc(predicted.value))
     n1 <- nrow(temp_data)  # total number of genotypes in dataset 
-    topk1 <- ceiling(n1 * threshold)  # Top x% of genotypes in dataset
+    topk1 <- min(n1, num_indv)  # Select minimum of 165 and the number of genotypes
     taxa_pred1 <- temp_data[1:topk1, ]
-    mean_value <- mean(taxa_pred1[["predicted.value"]], na.rm = TRUE)
+    mean_value <- mean(taxa_pred1$predicted.value, na.rm = TRUE)
     top_taxa_names <- taxa_pred1$taxa
     
     # Store the results
@@ -191,3 +192,4 @@ top_selected <- function(data) {
   }
   return(list(result_top_taxa = result_top_taxa, result_mean_value = result_mean_value))
 }
+
