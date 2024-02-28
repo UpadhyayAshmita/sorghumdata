@@ -78,33 +78,33 @@ create_folds<- function(individuals, nfolds, reps, seed = 123){
  return(sort)
 }
 
-#function for combine relationship matrix
-library(data.table)
-# Function to perform operations on kinship matrix and wholewave matrix
-process_kinship <- function(kin_matrix = kin,
-                            wave_matrix = re_nirs_joint,
-                            remove_percent,
-                            seed=123,
-                            rep,
-                            type= NULL) {
-  set.seed(seed)
-  N <- nrow(kin_matrix)
-  remove <- sample(1:N, size = round(N * remove_percent))
-  greduced <- kin_matrix[-remove, -remove]
-  kin_matrix[remove, remove] <- wave_matrix[remove, remove]
-  if (is.null(type)) {
-    scheme <- deparse(substitute(wave_matrix))
-    scheme <- unlist(strsplit(scheme, "_"))
-    loc <- scheme[3]
-    type <- scheme[2]
-  }
-  write.csv(kin_matrix, paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep, ".csv"))
-  rownames(kin_matrix) <- colnames(kin_matrix)
-  Gb <- G.tuneup(G = as.matrix(kin_matrix), bend = TRUE, eig.tol = 1e-06)$Gb
-  comb_matrixinv <- G.inverse(G = Gb, sparseform = TRUE)
-   saveRDS(comb_matrixinv,paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep,  ".rds"))
-    return(process_kinship)
-   }
+# #function for combine relationship matrix
+# library(data.table)
+# # Function to perform operations on kinship matrix and wholewave matrix
+# process_kinship <- function(kin_matrix = kin,
+#                             wave_matrix = re_nirs_joint,
+#                             remove_percent,
+#                             seed=123,
+#                             rep,
+#                             type= NULL) {
+#   set.seed(seed)
+#   N <- nrow(kin_matrix)
+#   remove <- sample(1:N, size = round(N * remove_percent))
+#   greduced <- kin_matrix[-remove, -remove]
+#   kin_matrix[remove, remove] <- wave_matrix[remove, remove]
+#   if (is.null(type)) {
+#     scheme <- deparse(substitute(wave_matrix))
+#     scheme <- unlist(strsplit(scheme, "_"))
+#     loc <- scheme[3]
+#     type <- scheme[2]
+#   }
+#   write.csv(kin_matrix, paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep, ".csv"))
+#   rownames(kin_matrix) <- colnames(kin_matrix)
+#   Gb <- G.tuneup(G = as.matrix(kin_matrix), bend = TRUE, eig.tol = 1e-06)$Gb
+#   comb_matrixinv <- G.inverse(G = Gb, sparseform = TRUE)
+#    saveRDS(comb_matrixinv,paste0("./data/relmatrices/","G",type, "/",loc , "/",remove_percent * 100,"/", "G", type,"_",rep,  ".rds"))
+#     return(process_kinship)
+#    }
 
 #function to calculate NRMSE
 calculate_nrmse <- function(observed, predicted) {
@@ -192,4 +192,3 @@ top_selected <- function(data) {
   }
   return(list(result_top_taxa = result_top_taxa, result_mean_value = result_mean_value))
 }
-
