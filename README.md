@@ -9,8 +9,6 @@ This repository contains all the scripts and data used for the sorghum project.
 
 # data directory tree structure
 
-<h1>data directory tree structure</h1>
-</pre>
 data/
 
 
