@@ -5,8 +5,6 @@ library(data.table)
 library(ASRgenomics)
 library(janitor)
 source('./script/outlier.R')
-
-
 phenotypic_datamw<- fread('./data/phenotypic_datamw_no_outlier.csv',data.table= FALSE) |>
   filter(loc == "MW")
 phenotypic_dataef<- fread('./data/phenotypic_dataef_no_outlier.csv',data.table= FALSE)|>
