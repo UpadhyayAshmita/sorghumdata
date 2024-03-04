@@ -12,108 +12,132 @@ This repository contains all the scripts and data used for the sorghum project.
 ```
 data/
 ├── relmatrices/
-│ ├── GBLUP/
-│ │ ├── G10.csv
-│ │ ├── G10inv.rds
-│ │ ├── G25.csv
-│ │ ├── G25inv.rds
-│ │ ├── G50.csv
-│ │ └── G50inv.rds
-│ ├── Gh2/
-│ │ ├── ef/
-│ │ │ ├── 10/
-│ │ │ │ ├── Gh2.csv
-│ │ │ │ └── Gh2inv_ef.rds
-│ │ │ ├── 25/
-│ │ │ │ ├── Gh2.csv
-│ │ │ │ └── Gh2inv_ef.rds
-│ │ │ └── 50/
-│ │ │ ├── Gh2.csv
-│ │ │ └── Gh2inv_ef.rds
-│ │ ├── mw/
-│ │ │ ├── 10/
-│ │ │ │ ├── Gh2.csv
-│ │ │ │ └── Gh2inv_mw.rds
-│ │ │ ├── 25/
-│ │ │ │ ├── Gh2.csv
-│ │ │ │ └── Gh2inv_mw.rds
-│ │ │ └── 50/
-│ │ │ ├── Gh2.csv
-│ │ │ └── Gh2inv_mw.rds
-│ │ └── joint/
-│ │ ├── 10/
-│ │ │ ├── Gh2.csv
-│ │ │ └── Gh2inv_joint.rds
-│ │ ├── 25/
-│ │ │ ├── Gh2.csv
-│ │ │ └── Gh2inv_joint.rds
-│ │ └── 50/
-│ │ ├── Gh2.csv
-│ │ └── Gh2inv_joint.rds
-│ ├── Gnirs/
-│ │ ├── ef/
-│ │ │ ├── 10/
-│ │ │ │ ├── Gnirs.csv
-│ │ │ │ └── Gnirsinv_ef.rds
-│ │ │ ├── 25/
-│ │ │ │ ├── Gnirs.csv
-│ │ │ │ └── Gnirsinv_ef.rds
-│ │ │ └── 50/
-│ │ │ ├── Gnirs.csv
-│ │ │ └── Gnirsinv_ef.csv
-│ │ ├── mw/
-│ │ │ ├── 10/
-│ │ │ │ ├── Gnirs.csv
-│ │ │ │ └── Gnirsinv_mw.rds
-│ │ │ ├── 25/
-│ │ │ │ ├── Gnirs.csv
-│ │ │ │ └── Gnirsinv_mw.rds
-│ │ │ └── 50/
-│ │ │ ├── Gnirs.csv
-│ │ │ └── Gnirsinv_mw.rds
-│ │ └── joint/
-│ │ ├── 10/
-│ │ │ ├── Gnirs.csv
-│ │ │ └── Gnirsinv_joint.rds
-│ │ ├── 25/
-│ │ │ ├── Gnirs.csv
-│ │ │ └── Gnirsinv_joint.rds
-│ │ └── 50/
-│ │ ├── Gnirs.csv
-│ │ └── Gnirsinv_joint.rds
-│ └── GWW/
-│ ├── ef/
-│ │ ├── 10/
-│ │ │ ├── GWW.csv
-│ │ │ └── GWWinv_ef.rds
-│ │ ├── 25/
-│ │ │ ├── GWW.csv
-│ │ │ └── GWWinv_ef.rds
-│ │ └── 50/
-│ │ ├── GWW.csv
-│ │ └── GWWinv_ef.rds
-│ ├── mw/
-│ │ ├── 10/
-│ │ │ ├── GWW.csv
-│ │ │ └── GWWinv_mw.rds
-│ │ ├── 25/
-│ │ │ ├── GWW.csv
-│ │ │ └── GWWinv_mw.rds
-│ │ └── 50/
-│ │ ├── GWW.csv
-│ │ └── GWWinv_mw.rds
-│ └── joint/
-│ ├── 10/
-│ │ ├── GWW.csv
-│ │ └── GWWinv_joint.rds
-│ ├── 25/
-│ │ ├── GWW.csv
-│ │ └── GWWinv_joint.rds
-│ └── 50/
-│ ├── GWW.csv
-│ └── GWWinv_joint.rds
+│       ├── GBLUP/
+|       |     |____G10.csv
+|       |     |____G10inv.rds
+|       |     |____G25.csv
+|       |     |____G25inv.rds
+|       |     |____G50.csv
+|       |     |____G50inv.rds
+│       ├── Gh2/
+|       |     |___ef/
+|       |     |   |____10/
+|       |     |    |    |__Gh2.csv
+|       |     |    |    |__Gh2inv_ef.rds
+|       |     |    |
+|       |     |    |____25/
+|       |     |    |     |__Gh2.csv
+|       |     |    |     |__Gh2inv_ef.rds
+|       |     |    |
+|       |     |    |____50/
+|       |     |          |__Gh2.csv
+|       |     |          |__Gh2inv_ef.rds|
+|       |     |___mw/
+|       |     |    |____10/
+|       |     |    |    |__Gh2.csv
+|       |     |    |    |__Gh2inv_mw.rds
+|       |     |    |
+|       |     |    |____25/
+|       |     |    |     |__Gh2.csv
+|       |     |    |     |__Gh2inv_mw.rds
+|       |     |    |
+|       |     |    |____50/
+|       |     |          |__Gh2.csv
+|       |     |          |__Gh2inv_mw.rds
+|       |     |___joint/
+|       |     |    |____10/
+|       |     |    |    |__Gh2.csv
+|       |     |    |    |__Gh2inv_joint.rds
+|       |     |    |
+|       |     |    |____25/
+|       |     |    |     |__Gh2.csv
+|       |     |    |     |__Gh2inv_joint.rds
+|       |     |    |
+|       |     |    |____50/
+|       |     |          |__Gh2.csv
+|       |     |          |__Gh2inv_joint.rds|
+|       |     |
+│       ├─Gnirs/
+|       |     |___ef/
+|       |     |    |____10/
+|       |     |    |     |__Gnirs.csv
+|       |     |    |     |__Gnirsinv_ef.rds
+|       |     |    | 
+|       |     |    |_____25/
+|       |     |    |      |__Gnirs.csv
+|       |     |    |      |__Gnirsinv_ef.rds
+|       |     |    |
+|       |     |    |_____50/
+|       |     |    |      |__Gnirs.csv
+|       |     |    |      |__Gnirsinv_ef.csv
+|       |     |    |
+│       |     |___mw/
+|       |     |    |_____10/
+|       |     |    |    |__Gnirs.csv
+|       |     |    |    |__Gnirsinv_mw.rds
+|       |     |    |_____25/
+|       |     |    |     |__Gnirs.csv
+|       |     |    |     |__Gnirsinv_mw.rds
+|       |     |    |______50/
+|       |     |    |     |__Gnirs.csv
+|       |     |    |     |__Gnirsinv_mw.rds
+|       |     |    |
+|       |     |____joint/
+|       |     |     |______10/
+|       |     |     |       |__Gnirs.csv
+|       |     |     |       |__Gnirsinv_joint.rds
+|       |     |     |
+|       |     |     |_______25/
+|       |     |     |       |__Gnirs.csv
+|       |     |     |       |__Gnirsinv_joint.rds
+|       |     |     |
+|       |     |     |________50/
+|       |     |               |__Gnirs.csv
+|       |     |               |__Gnirsinv_joint.rds
+|       |     | 
+|       |     | 
+|       |__GWW/
+|       |     |_____ef/
+|       |     |     |________10/
+|       |     |     |        |__GWW.csv
+|       |     |     |        |__GWWinv_ef.rds
+|       |     |     |
+|       |     |     |_________25/
+|       |     |     |          |__GWW.csv
+|       |     |     |          |__GWWinv_ef.rds
+|       |     |     |
+|       |     |     |_________50/
+|       |     |     |         |__GWW.csv
+|       |     |     |         |__GWWinv_ef.rds
+|       |     |_____mw/
+|       |     |       |________10/
+|       |     |       |        |__GWW.csv
+|       |     |       |        |__GWWinv_mw.rds
+|       |     |       |
+|       |     |       |________25/
+|       |     |       |         |__GWW.csv
+|       |     |       |         |__GWWinv_mw.rds
+|       |     |       |
+|       |     |       |_________50/
+|       |     |                |__GWW.csv
+|       |     |                |__GWWinv_mw.rds
+|       |     |
+|       |     |_______joint/
+|       |     |        |______10/
+|       |     |          |       |__GWW.csv
+|       |     |          |       |__GWWinv_joint.rds
+|       |     |          |
+|       |     |          |_______25/
+|       |     |          |        |__GWW.csv
+|       |     |          |        |__GWWinv_joint.rds
+|       |     |          |
+|       |     |          |________50/
+|       |     |                    |__GWW.csv
+|_______|_____|                    |__GWWinv_joint.rds
+|
 ├── logs
-└── vcffiles
+|
+|__vcffiles
 ```
 -   Relationship matrices created for different model and to run relationship matrix pipeline we need to create data/relmatrices/ and inside relmatrices we need to create folder GBLUP,Gh2, Gnirs, GWW. and inside Gh2, Gnirs and GWW folder we need to create ef, mw and joint and inside each location 10,25 and 50 folder.
 
