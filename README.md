@@ -9,9 +9,11 @@ This repository contains all the scripts and data used for the sorghum project.
 
 # data directory tree structure
 
+```
 data/
 
 
+```
 -   Relationship matrices created for different model and to run relationship matrix pipeline we need to create data/relmatrices/ and inside relmatrices we need to create folder GBLUP,Gh2, Gnirs, GWW. and inside Gh2, Gnirs and GWW folder we need to create ef, mw and joint and inside each location 10,25 and 50 folder.
 
 -   All outputs of analysis are inside the output folder
