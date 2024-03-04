@@ -4,27 +4,31 @@ This repository contains all the scripts and data used for the sorghum project.
 
 ## Content of Repository
 
--   Raw data used in the study from WEST sorghum diversity pannel. To run the pipeline we must create a folder data
+-Raw data used in the study from WEST sorghum diversity pannel. To run the pipeline we must create a folder data
+
+
+# data directory tree structure
+
+<h1>data directory tree structure</h1>
+</pre>
+data/
+
 
 -   Relationship matrices created for different model and to run relationship matrix pipeline we need to create data/relmatrices/ and inside relmatrices we need to create folder GBLUP,Gh2, Gnirs, GWW. and inside Gh2, Gnirs and GWW folder we need to create ef, mw and joint and inside each location 10,25 and 50 folder.
 
--   All output in a folder. Inside output folder there
+-   All outputs of analysis are inside the output folder
 
--   R-script for the analysis for stage-1 and stage-2
+-   R-script for the analysis for stage-1 and stage-2 are in script folder named stage-1 and stage-2.R
 
--   figures are created through pre-processing script
+-   Figures are created through post processing script
 
 -   Figures are stored in figures folder
 
 # Methodology for the analysis based on script:
 
-1.  Pre-processing script
+1.  stage-1 script (phenotypic data)
 
--   Read the field design and wavelength data and filter year 16
-
--   exploratory data analysis on the design data.
-
-2.  stage-1 script (phenotypic data)
+-   Loading the phenotypic data(wavelength + trait of interest ) and preprocess it and fit the model for heritability
 
 -   calculate heritability for wavelength for location EF, MW,and joint for 350-2500
 
@@ -37,7 +41,7 @@ This repository contains all the scripts and data used for the sorghum project.
     | SLA   | 0.345 | 0.33  | 0.58  |
     | Narea | 0.355 | 0.587 | 0.59  |
 
-    : Table:1- Heritability of trait of inetrest
+    : Table:1- Heritability of trait of interest
 
 -   calculate BLUEs for Narea and SLA for loc EF, MW, and Joint and included weight and this is the first stage model
 
